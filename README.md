@@ -9,7 +9,7 @@ At its core, the clustering problem relies on finding similar examples. This is 
 To measure the clustering and topic modeling effectiveness, we visualize the outcomes after applying [UMAP](https://en.wikipedia.org/wiki/Uniform_Manifold_Approximation_and_Projection) dimensionality reduction.
 
 <figure>
-  <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/X-qkQEg1sgR1p3RecWb1L.png">
+  <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/iE3e4VJSY84JyyTR9krmf.png">
   <figcaption style="text-align: center;">Semantic Clustering and Topic Modeling of Academic Literature with LLMs</figcaption>
 </figure>
 
