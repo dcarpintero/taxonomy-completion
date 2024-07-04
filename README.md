@@ -132,3 +132,10 @@ umap_reducer = umap.UMAP(n_neighbors=100,
                          metric='cosine')
 umap_embedding = umap_reducer.fit_transform(ds['embeddings'])
 ```
+
+## References
+
+- [1] McInnes, Leland, John Healy, and James Melville. 2018. *Umap: Uniform manifold approximation and projection for dimension reduction*. [arXiv:1802.03426](https://arxiv.org/abs/1802.03426).
+- [2] Campello, et al. 2013. *Density-Based Clustering Based on Hierarchical Density Estimates. Advances in Knowledge Discovery and Data Mining*. Vol. 7819. Berlin, Heidelberg: Springer Berlin Heidelberg. pp. 160–172. [doi:10.1007/978-3-642-37456-2_14](https://link.springer.com/chapter/10.1007/978-3-642-37456-2_14).
+- [3] Jiang, Albert Q., et al. 2023. *Mistral 7B*. [arXiv:2310.06825](https://arxiv.org/abs/2310.06825).
+- [4] Jiang, Albert Q., et al. 2024. *Mixtral of experts*. [arXiv:2401.04088](https://arxiv.org/abs/2401.04088).
