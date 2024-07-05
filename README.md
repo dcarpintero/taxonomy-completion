@@ -1,5 +1,18 @@
 # An LLM Approach to Semantic Clustering and Topic Modeling of Academic Literature
 
+[![GitHub license](https://img.shields.io/github/license/dcarpintero/semantic-clustering)](https://github.com/dcarpintero/semantic-clustering/blob/main/LICENSE)
+[![GitHub contributors](https://img.shields.io/github/contributors/dcarpintero/semantic-clustering.svg)](https://GitHub.com/dcarpintero/semantic-clustering/graphs/contributors/)
+[![GitHub issues](https://img.shields.io/github/issues/dcarpintero/semantic-clustering.svg)](https://GitHub.com/dcarpintero/semantic-clustering/issues/)
+[![GitHub pull-requests](https://img.shields.io/github/issues-pr/dcarpintero/semantic-clustering.svg)](https://GitHub.com/dcarpintero/semantic-clustering/pulls/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dcarpintero/semantic-clustering/blob/main/nb.semantic.clustering.topic.modeling.ipynb)
+
+[![GitHub watchers](https://img.shields.io/github/watchers/dcarpintero/semantic-clustering.svg?style=social&label=Watch)](https://GitHub.com/dcarpintero/semantic-clustering/watchers/)
+[![GitHub forks](https://img.shields.io/github/forks/dcarpintero/semantic-clustering.svg?style=social&label=Fork)](https://GitHub.com/dcarpintero/semantic-clustering/network/)
+[![GitHub stars](https://img.shields.io/github/stars/dcarpintero/semantic-clustering.svg?style=social&label=Star)](https://GitHub.com/dcarpintero/semantic-clustering/stargazers/)
+
+
+
 [Clustering](https://en.wikipedia.org/wiki/Cluster_analysis) stands as a fundamental task in unsupervised learning, where the goal is to group unlabeled data into related categories; whereas [Topic Modeling](https://en.wikipedia.org/wiki/Topic_model) focuses on identifying thematic structures within a collection of documents. These techniques find applications across various domains, enabling tasks such as information retrieval, anomaly detection, trend analysis, and biomedical research.
 
 This article provides an end-to-end guide to building an LLM-based pipeline for automatic categorization of research articles into latent topics using open source. Our playground is a  [dataset of 25,000 research arXiv publications](https://huggingface.co/datasets/dcarpintero/arxiv.cs.CL.embedv3.clustering.medium) from Computational Linguistics (Natural Language Processing) published before May 2024.
