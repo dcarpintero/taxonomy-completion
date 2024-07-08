@@ -19,10 +19,10 @@ At its core, the clustering problem relies on finding similar examples. This is 
 
 The results hint at emerging research domains around Language Models (LLMs) in the field of Computational Linguistics (cs.CL in arXiv) such as: '*Vision-Language-Models*', '*Multilingual LLMs*', '*Bias-, Attacks-, and Hallucination in LLMs*', '*LLM-based Agents*', '*Model Alignment*', '*Model Compression and Acceleration*', '*Misinformation Detection*' and '*Mathematical Reasoning in LLMs*', among others. This approach might serve as a baseline for automatically identifying candidate (sub)topics within high-level [arXiv categories](https://arxiv.org/category_taxonomy) and efficiently completing taxonomies, addressing the challenge posed by the increasing volume of publications.
 
-<figure>
+<p align="center">
   <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/iE3e4VJSY84JyyTR9krmf.png">
   <figcaption style="text-align: center;">LLM-based Pipeline for Categorization and Taxonomy Completion of Academic Literature</figcaption>
-</figure>
+</p>
 
 ## 1. Embedding Transformation with Quantization
 
@@ -60,10 +60,10 @@ df['embeddings'] = embeddings.tolist()
 
 The semantic similarity between corpora can now be trivially computed as the inner product of embeddings. In the following heat map each entry [x, y] is colored based on said embeddings product for `title` sentences [x] and [y].
 
-<figure>
+<p align="center">
   <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/4djmELIe2LkZ8_Tofc91Q.png">
   <figcaption style="text-align: center;">Semantic Similary in arXiv 'titles' with Embeddings</figcaption>
-</figure>
+</p>
 
 ### Reducing Memory Requirements with Quantization
 
@@ -258,10 +258,10 @@ chart = alt.Chart(df).mark_circle(size=5).encode(
 chart.display()
 ```
 
-<figure>
+<p align="center">
   <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/KUb54rlWen7Xf64RXzkUC.png">
   <figcaption style="text-align: center;">Semantic Clustering and Topic Modeling of Academic Literature (25k arXiv publications)</figcaption>
-</figure>
+</p>
 
 ## Resources
 
