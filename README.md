@@ -21,8 +21,10 @@ The results hint at emerging research domains around Language Models (LLMs) in t
 
 <p align="center">
   <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/iE3e4VJSY84JyyTR9krmf.png">
-  <figcaption style="text-align: center;">LLM-based Pipeline for Categorization and Taxonomy Completion of Academic Literature</figcaption>
+  <!-- figcaption style="text-align: center;">LLM-based Pipeline for Categorization and Taxonomy Completion of Academic Literature</figcaption -->
 </p>
+
+<p align="center">LLM-based Pipeline for Categorization and Taxonomy Completion of Academic Literature</p>
 
 ## 1. Embedding Transformation with Quantization
 
@@ -62,8 +64,10 @@ The semantic similarity between corpora can now be trivially computed as the inn
 
 <p align="center">
   <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/4djmELIe2LkZ8_Tofc91Q.png">
-  <figcaption style="text-align: center;">Semantic Similary in arXiv 'titles' with Embeddings</figcaption>
+  <!-- figcaption style="text-align: center;">Semantic Similary in arXiv 'titles' with Embeddings</figcaption -->
 </p>
+
+<p align="center">Semantic Similary in arXiv 'titles' with Embeddings</p>
 
 ### Reducing Memory Requirements with Quantization
 
@@ -260,7 +264,11 @@ chart.display()
 
 <p align="center">
   <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/KUb54rlWen7Xf64RXzkUC.png">
-  <figcaption style="text-align: center;">Semantic Clustering and Topic Modeling of Academic Literature (25k arXiv publications)</figcaption>
+  <!--figcaption style="text-align: center;">Semantic Clustering and Topic Modeling of Academic Literature (25k arXiv publications)</figcaption-->
+</p>
+
+<p align="center">
+  Semantic Clustering and Topic Modeling of Academic Literature (25k arXiv publications)
 </p>
 
 ## Resources
