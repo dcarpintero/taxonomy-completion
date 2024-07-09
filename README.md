@@ -1,40 +1,33 @@
-# An LLM-based Pipeline for Categorization and Taxonomy Completion of Academic Literature (with Embeddings Quantization)
+# Taxonomy Completion with Embedding Quantization and an LLM-based Pipeline: A Case Study in Computational Linguistics
 
-[![GitHub license](https://img.shields.io/github/license/dcarpintero/semantic-clustering)](https://github.com/dcarpintero/semantic-clustering/blob/main/LICENSE)
-[![GitHub contributors](https://img.shields.io/github/contributors/dcarpintero/semantic-clustering.svg)](https://GitHub.com/dcarpintero/semantic-clustering/graphs/contributors/)
-[![GitHub issues](https://img.shields.io/github/issues/dcarpintero/semantic-clustering.svg)](https://GitHub.com/dcarpintero/semantic-clustering/issues/)
-[![GitHub pull-requests](https://img.shields.io/github/issues-pr/dcarpintero/semantic-clustering.svg)](https://GitHub.com/dcarpintero/semantic-clustering/pulls/)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dcarpintero/semantic-clustering/blob/main/nb.semantic.clustering.topic.modeling.ipynb)
+##  Introduction
 
-[![GitHub watchers](https://img.shields.io/github/watchers/dcarpintero/semantic-clustering.svg?style=social&label=Watch)](https://GitHub.com/dcarpintero/semantic-clustering/watchers/)
-[![GitHub forks](https://img.shields.io/github/forks/dcarpintero/semantic-clustering.svg?style=social&label=Fork)](https://GitHub.com/dcarpintero/semantic-clustering/network/)
-[![GitHub stars](https://img.shields.io/github/stars/dcarpintero/semantic-clustering.svg?style=social&label=Star)](https://GitHub.com/dcarpintero/semantic-clustering/stargazers/)
+The ever-growing volume of research publications demands efficient methods for structuring academic knowledge. This task typically involves developing a supervised underlying scheme of classes and allocating publications to the most relevant one. In this article, we implement an end-to-end automated solution leveraging open-source embedding quantization and a Large Language Model (LLM) pipeline. Our playground is a dataset of [25,000 arXiv publications](https://huggingface.co/datasets/dcarpintero/arxiv.cs.CL.25k) from Computational Linguistics (cs.CL), published before July 2024, which we aim to organize under a novel candidate scheme of cs.CL sub-classes. 
 
-The ever-growing volume of research publications necessitates efficient methods for categorizing academic literature and completing taxonomies. This article provides an end-to-end automated solution by building a Large Language Model (LLM)-based pipeline and using embedding quantization. Our playground is a dataset of [25,000 arXiv publications](https://huggingface.co/datasets/dcarpintero/arxiv.cs.CL.25k) from Computational Linguistics (Natural Language Processing) published before July 2024.
+## Methodology
 
-The LLM-based pipeline implements *semantic clustering* and *topic modeling*, utilizing open-source tools and LLMs. [Clustering](https://en.wikipedia.org/wiki/Cluster_analysis) stands as a foundational task in unsupervised learning, where the goal is to group unlabeled data into related categories; whereas [topic modeling](https://en.wikipedia.org/wiki/Topic_model) identifies thematic structures within such collections of documents.
+Our approach centers on two key tasks: (i) clustering the arXiv dataset into related collections, and (ii) discovering the latent thematic structures within each cluster.
 
-At its core, the clustering problem relies on finding similar examples. This is a natural task for embeddings, as they capture the semantic relationships in a corpus, and can be provided as input features to a clustering algorithm to establish similarity links among the examples. We begin by transforming the (`title:abstract`) pairs of our [arXiv dataset](https://huggingface.co/datasets/dcarpintero/arxiv.cs.CL.25k) into a (quantized) embeddings representation using  [Jina-Embeddings-v2](https://arxiv.org/abs/2310.19923) - a BERT-ALiBi based attention model supporting 8192 sequence lengths - and subsequently applying HDBSCAN in a reduced dimensional space. Topic modeling is then performed at the cluster level. This latter process combines [LangChain](https://www.langchain.com/) and [Pydantic](https://docs.pydantic.dev/) with [Mistral-7B-Instruct-v0.3](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.3) to generate structured output.
+At its core, the clustering task requires identifying a sufficient number of similar examples within our *unlabeled* dataset. This is a natural task for embeddings, as they capture the semantic relationships in a corpus, and can be provided as input features to a clustering algorithm to establish similarity links among the examples. We begin by transforming the (`title:abstract`) pairs of the dataset into an embeddings representation using [Jina-Embeddings-v2](https://arxiv.org/abs/2310.19923) - a BERT-ALiBi based attention model supporting 8192 sequence lengths. We then apply scalar quantization with [Sentence Transformers](https://www.sbert.net/). And run [HDBSCAN](https://hdbscan.readthedocs.io/en/latest/how_hdbscan_works.html) in a reduced dimensional space to perform the clustering.
 
-The results hint at emerging research domains around Language Models (LLMs) in the field of Computational Linguistics (cs.CL in arXiv) such as: '*Vision-Language-Models*', '*Multilingual LLMs*', '*Bias-, Attacks-, and Hallucination in LLMs*', '*LLM-based Agents*', '*Model Alignment*', '*Model Compression and Acceleration*', '*Misinformation Detection*' and '*Mathematical Reasoning in LLMs*', among others. This approach might serve as a baseline for automatically identifying candidate (sub)topics within high-level [arXiv categories](https://arxiv.org/category_taxonomy) and efficiently completing taxonomies, addressing the challenge posed by the increasing volume of publications.
+To discover the latent topics within each cluster of arXiv publications, we combine [LangChain](https://www.langchain.com/) and [Pydantic](https://docs.pydantic.dev/) with [Mistral-7B-Instruct-v0.3](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.3) into an LLM-pipeline that provides structured output.
 
-<p align="center">
-  <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/iE3e4VJSY84JyyTR9krmf.png">
-  <!-- figcaption style="text-align: center;">LLM-based Pipeline for Categorization and Taxonomy Completion of Academic Literature</figcaption -->
-</p>
+The results suggest emerging research domains around Language Models (LLMs) in the field of Computational Linguistics (cs.CL) such as: '*Vision-Language-Models*', '*Multilingual LLMs*', '*Bias-, Attacks-, and Hallucination in LLMs*', '*LLM-based Agents*', '*Model Alignment*', '*Model Compression and Acceleration*', '*Misinformation Detection*' and '*Mathematical Reasoning in LLMs*', among others. This approach might serve as a baseline for automatically identifying candidate (sub)classes within high-level [arXiv categories](https://arxiv.org/category_taxonomy) and efficiently completing taxonomies, addressing the challenge posed by the increasing volume of publications.
 
-<p align="center">LLM-based Pipeline for Categorization and Taxonomy Completion of Academic Literature</p>
+<figure>
+  <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/rwxy8HfjDxWw6NDvbFtFX.png">
+  <figcaption style="text-align: center;">Taxonomy Completion of Academic Literature with Embedding Quantization and an LLM-Pipeline</figcaption>
+</figure>
 
-## 1. Embedding Transformation with Quantization
+## 1. Embedding Transformation
 
 Embeddings are numerical representations of real-world objects like text, images, and audio that encapsulate semantic information of the data they represent. They are used by AI models to understand complex knowledge domains in downstream applications such as clustering, as well as information retrieval and classification tasks, among others.
 
-### Large Sequence Jina-Embeddings
+#### Large Sequence Jina-Embeddings
 
 We will map (`title:abstract`) pairs to a 768 dimensional space using [Jina-Embeddings-v2](https://arxiv.org/abs/2310.19923) [1], an open-source text embedding model capable of accommodating up to 8192 tokens. This provides a sufficiently large sequence length for titles, abstracts, and other document sections that might be relevant. To overcome the conventional 512-token limit present in other models, Jina-Embeddings incorporates bidirectional [ALiBi](https://arxiv.org/abs/2108.12409) [2] into the BERT framework. AliBi (Attention with Linear Biases) enables input length extrapolation (i.e. sequences exceeding 2048 tokens) by encoding positional information directly within the self-attention layer, instead of introducing positional embeddings. In practice, it biases query-key attention scores with a penalty that is proportional to their distance, ensuring that proximate tokens demonstrate stronger mutual attention.
 
-### Encoding with Sentence Transformers
+#### Encoding with Sentence Transformers
 
 The first step to use the [Jina-Embeddings-v2](https://huggingface.co/jinaai/jina-embeddings-v2-base-en) model is to load it through [Sentence Transformers](https://www.SBERT.net), a framework for accessing state-of-the-art models that is available at the [Hugging Face Hub](https://huggingface.co/models?library=sentence-transformers&sort=downloads). There you can find over 500 hundred models such as [`all-MiniLM-L12-v2`](https://huggingface.co/sentence-transformers/all-MiniLM-L12-v2) and [`all-mpnet-base-v2`](https://huggingface.co/sentence-transformers/all-mpnet-base-v2) that are also suitable for text encoding.
 
@@ -58,18 +51,16 @@ embeddings = model.encode(df['title'] + ':' + df['abstract'],
 df['embeddings'] = embeddings.tolist()
 ```
 
-### Computing Semantic Similarity
+#### Computing Semantic Similarity
 
 The semantic similarity between corpora can now be trivially computed as the inner product of embeddings. In the following heat map each entry [x, y] is colored based on said embeddings product for `title` sentences [x] and [y].
 
-<p align="center">
+<figure>
   <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/4djmELIe2LkZ8_Tofc91Q.png">
-  <!-- figcaption style="text-align: center;">Semantic Similary in arXiv 'titles' with Embeddings</figcaption -->
-</p>
+  <figcaption style="text-align: center;">Semantic Similary in arXiv 'titles' with Embeddings</figcaption>
+</figure>
 
-<p align="center">Semantic Similary in arXiv 'titles' with Embeddings</p>
-
-### Reducing Memory Requirements with Quantization
+#### Reducing Memory Requirements with Quantization
 
 Embeddings may be challenging to scale up. Currently, state-of-the-art models represent each embedding as `float32` which requires 4 bytes of memory. Given that Jina-Embeddings-v2 maps text to a 768 dimensional space, the memory requirements for our dataset would be around 73 MB without index and other metadata.
 
@@ -89,6 +80,11 @@ However, if you work with a larger dataset, the memory requirements and associat
 | 3072                   | openai-text-embedding-3-large | 28.61 GB                     | 682.08 GB             | 1.143 TB                   |
 
 A technique used to achieve memory saving is *Quantization*. The intuition behind this approach is that we can discretize  floating-point values by mapping their range [f_max, f_min] into a smaller range of fixed-point numbers [q_max, q_min], and linearly distributing all values in between. In practice, this typically reduces the precision of a 32-bit floating-point to lower bit widths like 8-bits (scalar-quantization) or 1-bit values (binary quantization).
+
+<figure>
+  <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/rXGi-FWJHVeUoxVjRtD_L.png">
+  <figcaption style="text-align: center;">Scalar Embedding Quantization</figcaption>
+</figure>
 
 We will compute and compare the [results](https://huggingface.co/blog/dcarpintero/llm-based-categorization-and-taxonomy-completion/#5-visualization-and-results) using both `float32` and `int8` embeddings. This results in 4x memory saving and faster arithmetic operations (matrix multiplication can be performed faster with integer arithmetic). 
 
@@ -262,14 +258,10 @@ chart = alt.Chart(df).mark_circle(size=5).encode(
 chart.display()
 ```
 
-<p align="center">
+<figure>
   <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/KUb54rlWen7Xf64RXzkUC.png">
-  <!--figcaption style="text-align: center;">Semantic Clustering and Topic Modeling of Academic Literature (25k arXiv publications)</figcaption-->
-</p>
-
-<p align="center">
-  Semantic Clustering and Topic Modeling of Academic Literature (25k arXiv publications)
-</p>
+  <figcaption style="text-align: center;">Semantic Clustering and Topic Modeling of Academic Literature (25k arXiv publications)</figcaption>
+</figure>
 
 ## Resources
 
