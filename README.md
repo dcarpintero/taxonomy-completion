@@ -61,7 +61,7 @@ The semantic similarity between corpora can now be trivially computed as the inn
 
 ## 2. Embedding Quantization for Memory Saving
 
-Scaling up embeddings can be challenging. Currently, state-of-the-art models represent each embedding as `float32`, which requires 4 bytes of memory. Given that Jina-Embeddings-v2 maps text to a 768 dimensional space, the memory requirements for our dataset would be around 73 MB without index and other metadata.
+Scaling up embeddings can be challenging. Currently, state-of-the-art models represent each embedding as `float32`, which requires 4 bytes of memory. Given that Jina-Embeddings-v2 maps text to a 768 dimensional space, the memory requirements for our dataset would be around 73 MB without index and other metadata:
 
 ```python
 25,000 embeddings * 768 dimensions/embedding * 4 bytes/dimension = 76,800,000 bytes
@@ -85,21 +85,30 @@ A technique used to achieve memory saving is *Quantization*. The intuition behin
   <figcaption style="text-align: center;">Scalar Embedding Quantization - from <em>float32</em> to <em>(u)int8</em></figcaption>
 </figure>
 
-By plotting the frequency distribution of our embeddings, we observe that the values are indeed concentrated around a relatively narrow range [-2.0, +2.0]. This means we can effectively map the `float32` values to 256 `(u)int8` buckets without significant loss of information.
+By plotting the frequency distribution of our embeddings, we observe that the values are indeed concentrated around a relatively narrow range [-2.0, +2.0]. This means we can effectively map the `float32` values to 256 `(u)int8` buckets without significant loss of information:
+
+```python
+import matplotlib.pyplot as plt
+
+plt.hist(embeddings.flatten(), bins=250, edgecolor='C0')
+plt.xlabel('float-32 jina-embeddings-v2')
+plt.title('distribution')
+plt.show()
+```
 
 <figure>
   <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/Cx578eTvr8z3cj7yX7Nn5.png">
-  <figcaption style="text-align: center;">Original <em>float32</em> jina-embeddings-v2 distribution</figcaption>
+  <figcaption style="text-align: center;">Original <em>float32 jina-embeddings-v2</em> distribution</figcaption>
 </figure>
 
-We can easily calculate the `[f_min, f_max]` values.
+We can easily calculate the `[min, max]` values of the distribution:
 
 ```python
 >>> np.max(embeddings), np.min(embeddings)
 (2.074683, -2.0162134)
 ```
 
-A conservative calibration set of 10k embeddings would cover 99.8% of the original `float32` values. This calibration practice intents to obtain representative `f_min` and `f_max` values without the computational overhead and potential issues caused by outliers that might appear in larger datasets.
+A calibration set of 10k embeddings covers, in our case, nearly 99.99% of the original `float32` values. This calibration practice intents to obtain representative `f_min` and `f_max` values without the computational overhead and potential issues caused by outliers that might appear in larger datasets.
 
 ```python
 calibration_embeddings = embeddings[:10000]
@@ -109,9 +118,6 @@ f_max = np.max(calibration_embeddings)
 # calculate percentage in range
 f32_values = np.sum((embeddings >= f_min) & (embeddings <= f_max))
 percentage = (f32_values / embeddings.size) * 100
-
->>> 
->>>
 ```
 
 This scalar quantization approach can be easily applied with [Sentence Transformers](https://www.sbert.net/), resulting in a 4x memory saving compared to the original float32 representation. Moreover, we will also benefit from faster arithmetic operations since matrix multiplication can be performed faster with integer arithmetic. 
@@ -167,8 +173,6 @@ hdbs = hdbscan.HDBSCAN(min_cluster_size=100,            # conservative clusters'
 clusters = hdbs.fit_predict(umap_embedding)             # apply HDBSCAN on reduced UMAP
 ```
 
-The `cluster_selection_method` determines how HDBSCAN selects flat clusters from the tree hierarchy. Using `eom` (Excess of Mass) in combination with embedding quantization appeared to favour some larger clusters that would have needed a reclustering step. Instead, by using the `leaf` selection method, the algorithm selects leaf nodes from the tree, and produced a more fine grained clustering than Excess of Mass.
-
 The `cluster_selection_method` determines how HDBSCAN selects flat clusters from the tree hierarchy. Using `eom` (Excess of Mass) cluster selection method in combination with embedding quantization, tended to create a few larger, less specific clusters. These clusters would have required a further *reclustering process* to extract meaningful latent topics. Instead, by switching to the `leaf` selection method, the algorithm selects leaf nodes from the cluster hierarchy, and produced a more fine grained clustering compared to the Excess of Mass method.
 
 <figure>
@@ -180,7 +184,7 @@ The `cluster_selection_method` determines how HDBSCAN selects flat clusters from
 
 Having performed the clustering step, we now illustrate how to infer the latent topic of each cluster by combining an LLM such as [Mistral-7B-Instruct](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.3) [5] with [Pydantic](https://docs.pydantic.dev/) and [LangChain](https://www.langchain.com/) to create an LLM pipeline that generates output in a structured format.
 
-### 4.1 Pydantic Model
+### 5.1 Pydantic Model
 
 [Pydantic Models](https://docs.pydantic.dev/latest/concepts/models/) are classes that derive from `pydantic.BaseModel`, defining fields as type-annotated attributes. They are similar to `Python` dataclasses. However, they have been designed with subtle but significant differences that optimize various operations such as validation, serialization, and `JSON` schema generation. Our `Topic` class defines a field named `label`. This will generate output in a structured format, rather than a free-form text block, facilitating easier processing and analysis of the inference results.
 
@@ -194,7 +198,7 @@ class Topic(BaseModel):
     label: str = Field(..., description="Identified topic")
 ```
 
-### 4.2 LangChain Prompt Template
+### 5.2 LangChain Prompt Template
 
 [LangChain Prompt Templates](https://python.langchain.com/v0.2/docs/concepts/#prompt-templates) are pre-defined recipes for translating user input and parameters into instructions for a language model.
 
@@ -216,7 +220,7 @@ topic_prompt = """
     """
 ```
 
-### 4.3 Inference Chain using LangChain Expression Language
+### 5.3 Inference Chain using LangChain Expression Language
 
 This section illustrates how to compose a topic modeling pipeline using the [LangChain Expression Language (LCEL)](https://python.langchain.com/docs/expression_language/).
 
@@ -299,20 +303,32 @@ chart.display()
 
 <figure>
   <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/coTOJJMwDXoNoj5_dNgQe.png">
-  <figcaption style="text-align: center;">HDBSCAN <em>float32</em> & <em>quantized-int8</em> leaf-clustering comparison</figcaption>
+  <figcaption style="text-align: center;">HDBSCAN leaf-clustering comparison using <em>float32</em> & <em>quantized-int8</em> embeddings</figcaption>
 </figure>
+
+#### Does Quantization have a denoising, regularization effect on clustering?
 
 The clustering results using `float32` and `int8` quantized embeddings show a similar general layout of well-defined clusters, indicating that (i) the HDBSCAN clustering algorithm was effective in both cases, and (ii) the core relationships in the data were maintained after quantization.
 
-**Notably, it can be observed that using embedding quantization resulted in slightly more granular clustering (34 clusters versus 31) that appears to be semantically coherent. Our tentative hypothesis is that quantization might *paradoxically* guide the clustering algorithm to separate points that were previously grouped together.** This could be due to (i) noise (quantization might create variations in the data) and numerical precision (a reduced precision could act as a sort of regularization and lead to more decisive clustering decisions, as the algorithm has fewer in-between values to consider), or due to (ii) the alteration of distance calculations (this could amplify certain differences between points that were less pronounced in the `float32` representation). Further investigation with a larger dataset would be necessary to fully understand the implications of quantization on clustering.
+**Notably, it can be observed that using embedding quantization resulted in slightly more granular clustering (34 clusters versus 31) that appears to be semantically coherent. Our tentative hypothesis is that scalar quantization might *paradoxically* guide the HDBSCAN clustering algorithm to separate points that were previously grouped together.**
 
-### 6.2 Taxonomy Completion
+This could be due to (i) noise (quantization can create small variations in the data, which might have a *denoising* effect in clustering) and numerical precision (a reduced precision could also act as a sort of regularization and lead to more decisive clustering decisions), or due to (ii) the alteration of distance calculations (this could amplify certain differences between points that were less pronounced in the `float32` representation). Further investigation with a larger dataset would be necessary to fully understand the implications of quantization on clustering.
 
-The results suggest emerging research domains around Language Models (LLMs) in the field of Computational Linguistics (cs.CL) that might serve as a baseline for a candidate classification scheme within the [arXiv cs.CL category](https://arxiv.org/category_taxonomy). 
+### 6.2 Candidate Taxonomy
 
-**Initial 'cs.CL' classification scheme**
+The results suggest emerging research domains around Language Models (LLMs) in the field of Computational Linguistics (cs.CL) that might serve as a baseline for a candidate classification scheme within the [arXiv cs.CL category](https://arxiv.org/category_taxonomy):
 
-**Candicate 'cs.CL' classification scheme**
+| ArXiv Category | Candidate Taxonomy                          |
+|----------|---------------------------------------------|
+| cs.CL    | Vision-Language-Models                      |
+|          | Multilingual LLMs                           |
+|          | Bias-, Attacks-, and Hallucination in LLMs  |
+|          | LLM-based Agents                            |
+|          | Model Alignment                             |
+|          | Model Compression and Acceleration          |
+|          | Misinformation Detection                    |
+|          | Mathematical Reasoning in LLMs              |
+
 
 
 ## Resources
