@@ -1,17 +1,19 @@
 # Taxonomy Completion with Embedding Quantization and an LLM-based Pipeline: A Case Study in Computational Linguistics
 
-The ever-growing volume of research publications demands efficient methods for structuring academic knowledge. This task typically involves developing a supervised underlying scheme of classes and allocating publications to the most relevant class. In this article, we implement an end-to-end automated solution using embedding quantization (incl. a comprehensive analysis on scalar quantization) and a Large Language Model (LLM) pipeline. Our playground is a dataset of [25,000 arXiv publications](https://huggingface.co/datasets/dcarpintero/arxiv.cs.CL.25k) from Computational Linguistics (cs.CL), published before July 2024, which we aim to organize under a novel candidate scheme of cs.CL sub-classes. 
+The ever-growing volume of research publications demands efficient methods for structuring academic knowledge. This task typically involves developing a supervised underlying scheme of classes and allocating publications to the most relevant class. In this article, we implement an end-to-end automated solution using embedding quantization (incl. a comprehensive analysis on scalar quantization and its effects on clustering) and a Large Language Model (LLM) pipeline. Our playground is a dataset of [25,000 arXiv publications](https://huggingface.co/datasets/dcarpintero/arxiv.cs.CL.25k) from Computational Linguistics (cs.CL), published before July 2024, which we aim to organize under a novel candidate scheme of cs.CL sub-classes.
 
 ## Methodology
 
-Our approach centers on two key tasks: (i) unsupervised clustering of the arXiv dataset into related collections, and (ii) discovering the latent thematic structures within each cluster.
+Our approach focuses on two key tasks: (i) unsupervised clustering of the arXiv dataset into related collections, and (ii) discovering the latent thematic structures within each cluster.
 
-At its core, the clustering task requires identifying a sufficient number of similar examples within our *unlabeled* dataset.
-This is a natural task for embeddings, as they capture semantic relationships in a corpus and can be provided as input features to a clustering algorithm to establish similarity links among examples. We begin by transforming the (*title*:*abstract*) pairs of the dataset into an embeddings representation using [Jina-Embeddings-v2](https://arxiv.org/abs/2310.19923), a BERT-ALiBi based attention model supporting 8192 sequence lengths. We then apply scalar quantization with [Sentence Transformers](https://www.sbert.net/). And run [HDBSCAN](https://hdbscan.readthedocs.io/en/latest/how_hdbscan_works.html) in a reduced dimensional space to perform the clustering.
+At its core, the clustering task requires identifying a sufficient number of similar examples within an *unlabeled* dataset.
+This is a natural task for embeddings, as they capture semantic relationships in a corpus and can be provided as input features to a clustering algorithm to establish similarity links among examples. We begin by transforming the (*title*:*abstract*) pairs of our dataset into an embeddings representation using [Jina-Embeddings-v2](https://arxiv.org/abs/2310.19923), a BERT-ALiBi based attention model supporting 8192 sequence lengths. We then apply scalar quantization using both [Sentence Transformers](https://www.sbert.net/) and a custom implementation.
 
-To discover the latent topics within each cluster of arXiv publications, we combine [LangChain](https://www.langchain.com/) and [Pydantic](https://docs.pydantic.dev/) with [Mistral-7B-Instruct-v0.3](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.3) into an LLM-pipeline that provides structured output.
+For clustering, we run [HDBSCAN](https://hdbscan.readthedocs.io/en/latest/how_hdbscan_works.html) in a reduced dimensional space. We compare the HDBSCAN results using `eom` and `leaf` clustering methods, and examine how using `(u)int8` embeddings quantization instead of `float32` representations affects this process.
 
-The results hint at emerging research domains around Language Models (LLMs) in the field of Computational Linguistics (cs.CL). This approach might serve as a baseline for automatically identifying candidate (sub)classes within high-level [arXiv categories](https://arxiv.org/category_taxonomy) and efficiently completing taxonomies, addressing the challenge posed by the increasing volume of academic literature.
+To uncover latent topics within each cluster of arXiv publications, we combine [LangChain](https://www.langchain.com/) and [Pydantic](https://docs.pydantic.dev/) with [Mistral-7B-Instruct-v0.3](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.3) into an LLM-pipeline that generates structured output.
+
+The results hint at emerging research domains around Language Models (LLMs) in the field of Computational Linguistics (cs.CL). This approach may serve as a baseline for automatically identifying candidate subclasses within high-level [arXiv categories](https://arxiv.org/category_taxonomy) and efficiently completing taxonomies, addressing the challenge posed by the increasing volume of academic literature.
 
 <figure>
   <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/Ghc69tCVsY-RMXD50PeIC.png">
@@ -78,7 +80,7 @@ However, if you work with a larger dataset, the memory requirements and associat
 A technique used to achieve memory saving is *Quantization*. The intuition behind this approach is that we can discretize  floating-point values by mapping their range [`f_max`, `f_min`] into a smaller range of fixed-point numbers [`q_max`, `q_min`], and linearly mapping all values between these ranges. In practice, this typically reduces the precision of a 32-bit floating-point to lower bit widths like 8-bits (scalar-quantization) or 1-bit values (binary quantization).
 
 <figure>
-  <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/9r3rD0Dk2H4FnvVOC3rro.png">
+  <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/8PF8uD8wgk12Uuejddhnw.png">
   <figcaption style="text-align: center;">Scalar Embedding Quantization - from <em>float32</em> to <em>(u)int8</em></figcaption>
 </figure>
 
