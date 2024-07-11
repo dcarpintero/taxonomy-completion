@@ -1,6 +1,6 @@
 # Taxonomy Completion with Embedding Quantization and an LLM-based Pipeline: A Case Study in Computational Linguistics
 
-The ever-growing volume of research publications demands efficient methods for structuring academic knowledge. This task typically involves developing a supervised underlying scheme of classes and allocating publications to the most relevant class. In this article, we implement an end-to-end automated solution leveraging open-source embedding quantization and a Large Language Model (LLM) pipeline. Our playground is a dataset of [25,000 arXiv publications](https://huggingface.co/datasets/dcarpintero/arxiv.cs.CL.25k) from Computational Linguistics (cs.CL), published before July 2024, which we aim to organize under a novel candidate scheme of cs.CL sub-classes. 
+The ever-growing volume of research publications demands efficient methods for structuring academic knowledge. This task typically involves developing a supervised underlying scheme of classes and allocating publications to the most relevant class. In this article, we implement an end-to-end automated solution using embedding quantization (incl. a comprehensive analysis on scalar quantization) and a Large Language Model (LLM) pipeline. Our playground is a dataset of [25,000 arXiv publications](https://huggingface.co/datasets/dcarpintero/arxiv.cs.CL.25k) from Computational Linguistics (cs.CL), published before July 2024, which we aim to organize under a novel candidate scheme of cs.CL sub-classes. 
 
 ## Methodology
 
@@ -11,7 +11,7 @@ This is a natural task for embeddings, as they capture semantic relationships in
 
 To discover the latent topics within each cluster of arXiv publications, we combine [LangChain](https://www.langchain.com/) and [Pydantic](https://docs.pydantic.dev/) with [Mistral-7B-Instruct-v0.3](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.3) into an LLM-pipeline that provides structured output.
 
-The results hint at emerging research domains around Language Models (LLMs) in the field of Computational Linguistics (cs.CL), such as: '*Vision-Language-Models*', '*Multilingual LLMs*', '*Bias-, Attacks-, and Hallucination in LLMs*', '*LLM-based Agents*', '*Model Alignment*', '*Model Compression and Acceleration*', '*Misinformation Detection*' and '*Mathematical Reasoning in LLMs*', among others. This approach might serve as a baseline for automatically identifying candidate (sub)classes within high-level [arXiv categories](https://arxiv.org/category_taxonomy) and efficiently completing taxonomies, addressing the challenge posed by the increasing volume of academic literature.
+The results hint at emerging research domains around Language Models (LLMs) in the field of Computational Linguistics (cs.CL). This approach might serve as a baseline for automatically identifying candidate (sub)classes within high-level [arXiv categories](https://arxiv.org/category_taxonomy) and efficiently completing taxonomies, addressing the challenge posed by the increasing volume of academic literature.
 
 <figure>
   <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/Ghc69tCVsY-RMXD50PeIC.png">
@@ -35,19 +35,16 @@ from sentence_transformers import SentenceTransformer
 model = SentenceTransformer('jinaai/jina-embeddings-v2-base-en', trust_remote_code=True)
 ```
 
-We now encode (*title*:*abstract*) pairs of our dataset using `batch_size = 64`. This allows for parallel computation on hardware accelerators like GPUs (albeit at the cost of requiring more memory). 
+We now encode (*title*:*abstract*) pairs of our [dataset]() using `batch_size = 64`. This allows for parallel computation on hardware accelerators like GPUs (albeit at the cost of requiring more memory). 
 
 ```python
-import pandas as pd
+from datasets import load_dataset
+ds = load_dataset("dcarpintero/arxiv.cs.CL.25k", split="train")
 
-DS_PATH='./arxiv.cs.CL.25k.desc.json'
-BATCH_SIZE = 64
-
-df = pd.read_json(DS_PATH)
-embeddings = model.encode(df['title'] + ':' + df['abstract'],
-                          batch_size=BATCH_SIZE,
-                          show_progress_bar=True)
-df['embeddings'] = embeddings.tolist()
+corpus = [title + ':' + abstract for title, abstract in zip(ds['title'], ds['abstract'])]
+f32_embeddings = model.encode(corpus,
+                              batch_size=64,
+                              show_progress_bar=True)
 ```
 
 #### Computing Semantic Similarity
@@ -70,7 +67,7 @@ Scaling up embeddings can be challenging. Currently, state-of-the-art models rep
 
 However, if you work with a larger dataset, the memory requirements and associated costs might increase significantly:
 
-| Embedding<br>Dimension | Embedding<br>Model            | 2.5M<br>ArXiv Abstracts      | [60.9M<br>Wikipedia Docs](https://en.wikipedia.org/wiki/Wikipedia:Size_of_Wikipedia) | 100M<br>Embeddings |
+| Embedding<br>Dimension | Embedding<br>Model            | 2.5M<br>ArXiv Abstracts      | 60.9M<br>Wikipedia Docs | 100M<br>Embeddings |
 |------------------------|-------------------------------|------------------------------|-----------------------|------------------------------|
 | 384                    | all-MiniLM-L12-v2             | 3.57 GB                      | 85.26 GB              | 142.88 GB                    |
 | 768                    | all-mpnet-base-v2             | 7.15 GB                      | 170.52 GB             | 285.76 GB                    |
@@ -90,7 +87,7 @@ By plotting the frequency distribution of our embeddings, we observe that the va
 ```python
 import matplotlib.pyplot as plt
 
-plt.hist(embeddings.flatten(), bins=250, edgecolor='C0')
+plt.hist(f32_embeddings.flatten(), bins=250, edgecolor='C0')
 plt.xlabel('float-32 jina-embeddings-v2')
 plt.title('distribution')
 plt.show()
@@ -101,23 +98,33 @@ plt.show()
   <figcaption style="text-align: center;">Original <em>float32 jina-embeddings-v2</em> distribution</figcaption>
 </figure>
 
-We can easily calculate the `[min, max]` values of the distribution:
+We can calculate the exact `[min, max]` values of the distribution:
 
 ```python
->>> np.max(embeddings), np.min(embeddings)
-(2.074683, -2.0162134)
+>>> np.min(f32_embeddings), np.max(f32_embeddings)
+(-2.0162134, 2.074683)
 ```
 
-A calibration set of 10k embeddings covers, in our case, nearly 99.99% of the original `float32` values. This calibration practice intents to obtain representative `f_min` and `f_max` values without the computational overhead and potential issues caused by outliers that might appear in larger datasets.
+A calibration set of 10k embeddings would cover nearly 99.98% of the original `float32` values. The use of calibration intents to obtain representative `f_min` and `f_max` values along each dimension to reduce the computational overhead and potential issues caused by outliers that might appear in larger datasets.
 
 ```python
-calibration_embeddings = embeddings[:10000]
-f_min = np.min(calibration_embeddings)
-f_max = np.max(calibration_embeddings)
+def calibration_accuracy(embeddings: np.ndarray, k: int = 10000) -> float:
+  calibration_embeddings = embeddings[:k]
+  f_min = np.min(calibration_embeddings, axis=0)
+  f_max = np.max(calibration_embeddings, axis=0)
 
-# calculate percentage in range
-f32_values = np.sum((embeddings >= f_min) & (embeddings <= f_max))
-percentage = (f32_values / embeddings.size) * 100
+  # Calculate percentage in range for each dimension
+  size = embeddings.shape[0]
+  avg = []
+  for i in range(embeddings.shape[1]):
+      in_range = np.sum((embeddings[:, i] >= f_min[i]) & (embeddings[:, i] <= f_max[i]))
+      dim_percentage = (in_range / size) * 100
+      avg.append(dim_percentage)
+
+  return np.mean(avg)
+
+acc = calibration_accuracy(f32_embeddings, k=10000)
+print(f"Average percentage of embeddings within [f_min, f_max] calibration: {acc:.5f}%")
 ```
 
 This scalar quantization approach can be easily applied with [Sentence Transformers](https://www.sbert.net/), resulting in a 4x memory saving compared to the original float32 representation. Moreover, we will also benefit from faster arithmetic operations since matrix multiplication can be performed faster with integer arithmetic. 
@@ -127,38 +134,109 @@ from sentence_transformers.quantization import quantize_embeddings
 
 # quantization is applied in a post-processing step
 int8_embeddings = quantize_embeddings(
-    np.array(embeddings),
+    np.array(f32_embeddings),
     precision="int8",
-    calibration_embeddings=np.array(embeddings[:10000]),
+    calibration_embeddings=np.array(f32_embeddings[:10000]),
 )
 ```
 
 ```python
->>> fp32_embeddings.dtype, fp32_embeddings.shape, fp32_embeddings.nbytes
+>>> f32_embeddings.dtype, f32_embeddings.shape, f32_embeddings.nbytes
 (dtype('float32'), (25107, 768), 77128704) # 73.5 MB
 
 >>> int8_embeddings.dtype, int8_embeddings.shape, int8_embeddings.nbytes
 (dtype('int8'), (25107, 768), 19282176)    # 18.3 MB
+
+>>> # calculate compression
+>>> (f32_embeddings.nbytes - int8_embeddings.nbytes) / f32_embeddings.nbytes * 100
+75.0
 ```
 
-## 3. Embedding Projection for Dimensionality Reduction
+For completeness we also implement a scalar quantization method (see quantization diagram above):
 
-In order to reduce the computational complexity and memory usage during clustering, we project the (*title*:*abstract*) embedding pairs from a high-dimensional space (768) to a lower-dimensional one (5 dimensions) using [dimensionality reduction](https://en.wikipedia.org/wiki/Dimensionality_reduction). In this regard, [UMAP](https://en.wikipedia.org/wiki/Nonlinear_dimensionality_reduction#Uniform_manifold_approximation_and_projection) [3] is a popular technique known for its effectiveness in preserving both the local and global data structures.
+```python
+def scalar_quantize_embeddings(embeddings: np.ndarray,
+                               calibration_embeddings: np.ndarray) -> np.ndarray:
+    """
+    Quantize embeddings into uint8 using scalar quantization based on calibration embeddings.
+
+    Parameters:
+    embeddings (numpy.ndarray): The floating-point embedding vectors to be quantized.
+    calibration_embeddings (numpy.ndarray): The floating-point calibration embedding vectors.
+
+    Returns:
+    np.ndarray: quantized embeddings
+    """
+    # Step 1: Calculate [f_min, f_max] per dimension from the calibration set 
+    f_min = np.min(calibration_embeddings, axis=0)
+    f_max = np.max(calibration_embeddings, axis=0)
+
+    # Step 2: Map [f_min, f_max] to [q_min, q_max] => (scaling factors, zero point)
+    q_min = 0
+    q_max = 255
+    scales = (f_max - f_min) / (q_max - q_min)
+    zero_point = 0 # uint8 quantization maps inherently min_values to zero, added for completeness
+
+    # Step 3: encode (scale, round)
+    quantized_embeddings = ((embeddings - f_min) / scales).astype(np.uint8)
+
+    return quantized_embeddings
+```
+
+```python
+calibration_embeddings = f32_embeddings[:10000]
+beta_uint8_embeddings = scalar_quantize_embeddings(f32_embeddings, calibration_embeddings)
+```
+
+```python
+beta_uint8_embeddings[5000][64:128].reshape(8, 8)
+
+array([[187, 111,  96, 128, 116, 129, 130, 122],
+       [132, 153,  72, 136,  94, 120, 112,  93],
+       [143, 121, 137, 143, 195, 159,  90,  93],
+       [178, 189, 143,  99,  99, 151,  93, 102],
+       [179, 104, 146, 150, 176,  94, 148, 118],
+       [161, 138,  90, 122,  93, 146, 140, 129],
+       [121, 115, 153, 118, 107,  45,  70, 171],
+       [207,  53,  67, 115, 223, 105, 124, 158]], dtype=uint8)
+```
+
+
+We choose to continue with the embeddings quantized using SentenceTransformers, but we will analyze also the results using our implementation.
+
+```python
+# `f32_embeddings` => if you prefer to not use quantization
+# `beta_uint8_embeddings` => to check our custom implemention
+embeddings = int8_embeddings 
+```
+
+## 3. Projecting Embeddings for Dimensionality Reduction
+
+In this section, we perform a two-stage projection of (*title*:*abstract*) embedding pairs from their original high-dimensional space (768) to lower dimensions, namely:
+- `5 dimensions` for reducing computational complexity during clustering, and 
+- `2 dimensions` for enabling visual representation in `x, y` coordinates.
+
+For both projections, we employ [UMAP](https://en.wikipedia.org/wiki/Nonlinear_dimensionality_reduction#Uniform_manifold_approximation_and_projection) [3], a popular dimensionality reduction technique known for its effectiveness in preserving both the local and global data structures. In practice, this makes it a preferred choice for handling complex datasets with high-dimensional embeddings.
 
 ```python
 import umap
 
-umap_embedding = umap.UMAP(n_neighbors=100, # consider 100 nearest neighbors for each point
-                           n_components=5,  # reduce embedding space from 768 to 5 dimensions
-                           min_dist=0.1,    # maintain local and global balance
-                           metric='cosine').fit_transform(ds['embeddings'])
+embedding_5d = umap.UMAP(n_neighbors=100, # consider 100 nearest neighbors for each point
+                         n_components=5,  # reduce embedding space from 768 to 5 dimensions
+                         min_dist=0.1,    # maintain local and global balance
+                         metric='cosine').fit_transform(embeddings)
+
+embedding_2d = umap.UMAP(n_neighbors=100,
+                         n_components=2,
+                         min_dist=0.1,
+                         metric='cosine').fit_transform(embeddings)
 ```
 
 Note that when we apply HDBSCAN clustering in the next step, the clusters found will be influenced by how UMAP preserved the local structures. A smaller `n_neighbors` value means UMAP will focus more on local structures, whereas a larger value allows to capture more global representations, which might be beneficial for understanding overall patterns in the data.
 
 ## 4. Semantic Clustering
 
-This section shows how to use the reduced (*title*:*abstract*) embeddings as input features of a clustering algorithm. This enables identification of related categories based on embedding distances.
+The reduced (*title*:*abstract*) embeddings can be used as input features of a clustering algorithm, enabling the identification of related categories based on embedding distances.
 
 We have opted for [HDBSCAN](https://en.wikipedia.org/wiki/HDBSCAN) (Hierarchical Density-Based Spatial Clustering of Applications with Noise) [4], an advanced clustering algorithm that extends DBSCAN by adapting to varying density clusters. Unlike K-Means which requires pre-specifying the number of clusters, HDBSCAN has only one important hyperparameter, `n`, which establishes the minimum number of examples to include in a cluster. 
 
@@ -170,7 +248,7 @@ import hdbscan
 hdbs = hdbscan.HDBSCAN(min_cluster_size=100,            # conservative clusters' size
                        metric='euclidean',              # points distance metric
                        cluster_selection_method='leaf') # favour more fine grained clustering
-clusters = hdbs.fit_predict(umap_embedding)             # apply HDBSCAN on reduced UMAP
+clusters = hdbs.fit_predict(embedding_5d)             # apply HDBSCAN on reduced UMAP
 ```
 
 The `cluster_selection_method` determines how HDBSCAN selects flat clusters from the tree hierarchy. Using `eom` (Excess of Mass) cluster selection method in combination with embedding quantization, tended to create a few larger, less specific clusters. These clusters would have required a further *reclustering process* to extract meaningful latent topics. Instead, by switching to the `leaf` selection method, the algorithm selects leaf nodes from the cluster hierarchy, and produced a more fine grained clustering compared to the Excess of Mass method.
@@ -248,7 +326,7 @@ def TopicModeling(titles: List[str]) -> str:
     return topic_chain.invoke({"titles": titles})
 ```
 
-To enable the model to infer the topic of each cluster, we provide a random subset of `25` arXiv titles from each cluster as input.
+To enable the model to infer the topic of each cluster, we provide a subset of 25 paper titles from each cluster as input.
 
 ```python
 topics = []
@@ -258,7 +336,7 @@ for i, cluster in df.groupby('cluster'):
     topics.append(topic.label)
 ```
 
-In the next step, we map the latent topics identified by the LLM pipeline to the corresponding clusters.
+Let's assign each arXiv publication to its corresponding cluster.
 
 ```python
 n_clusters = len(df['cluster'].unique())
@@ -271,21 +349,7 @@ df['topic'] = df['cluster'].map(topic_map)
 
 ### 6.1 Analyzing the effects of Quantization on Clustering
 
-We prepare the dataset for visualization by further reducing the number of dimensions, in this case to `(x, y)` dimensions:
-
-```python
-x_y_embeddings = umap.UMAP(n_neighbors=100, # consider 100 nearest neighbors for each point
-                           n_components=2,  # reduce embeddings space from 5 to 2 dimensions
-                           min_dist=0.1,    # maintain local and global structure balance
-                           metric='cosine').fit_transform(ds['embeddings'])
-
-df = pd.DataFrame(x_y_embeddings, columns=['x', 'y'])
-df['cluster'] = clusters
-df['title'] = ds['title']
-df = df[df['cluster'] != -1] # remove outliers
-```
-
-And then we create an interactive scatter plot:
+Let's create an interactive scatter plot:
 
 ```python
 chart = alt.Chart(df).mark_circle(size=5).encode(
@@ -306,13 +370,11 @@ chart.display()
   <figcaption style="text-align: center;">HDBSCAN leaf-clustering comparison using <em>float32</em> & <em>quantized-int8</em> embeddings</figcaption>
 </figure>
 
-#### Does Quantization have a denoising, regularization effect on clustering?
-
 The clustering results using `float32` and `int8` quantized embeddings show a similar general layout of well-defined clusters, indicating that (i) the HDBSCAN clustering algorithm was effective in both cases, and (ii) the core relationships in the data were maintained after quantization.
 
-**Notably, it can be observed that using embedding quantization resulted in slightly more granular clustering (34 clusters versus 31) that appears to be semantically coherent. Our tentative hypothesis is that scalar quantization might *paradoxically* guide the HDBSCAN clustering algorithm to separate points that were previously grouped together.**
+Notably, it can be observed that using embedding quantization resulted in slightly more granular clustering (34 clusters versus 31) that appears to be semantically coherent. Our tentative hypothesis is that scalar quantization might *paradoxically* guide the HDBSCAN clustering algorithm to separate points that were previously grouped together.
 
-This could be due to (i) noise (quantization can create small variations in the data, which might have a *denoising* effect in clustering) and numerical precision (a reduced precision could also act as a sort of regularization and lead to more decisive clustering decisions), or due to (ii) the alteration of distance calculations (this could amplify certain differences between points that were less pronounced in the `float32` representation). Further investigation with a larger dataset would be necessary to fully understand the implications of quantization on clustering.
+This could be due to (i) noise and numerical precission (quantization can create small *noisy* variations in the data, which might have a sort of regularization effect and lead to more decisive clustering decisions), or due to (ii) the alteration of distance calculations (this could amplify certain differences between points that were less pronounced in the `float32` representation). Further investigation would be necessary to fully understand the implications of quantization on clustering.
 
 ### 6.2 Candidate Taxonomy
 
