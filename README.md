@@ -1,24 +1,24 @@
 # Taxonomy Completion with Embedding Quantization and an LLM-based Pipeline: A Case Study in Computational Linguistics
 
-The ever-growing volume of research publications necessitates efficient methods for structuring academic knowledge. This task typically involves developing a supervised underlying scheme of classes and allocating publications to the most relevant class. In this article, we implement an end-to-end automated solution using embedding quantization (incl. a comprehensive guide and analysis on scalar quantization applied to clustering) and a Large Language Model (LLM) pipeline. Our case study starts with a dataset of [25,000 arXiv publications](https://huggingface.co/datasets/dcarpintero/arxiv.cs.CL.25k) from Computational Linguistics (cs.CL), published before July 2024, which we organize under a novel hierarchical scheme of cs.CL sub-classes.
+The ever-growing volume of research publications necessitates efficient methods for structuring academic knowledge. This task typically involves developing a supervised underlying scheme of classes and allocating publications to the most relevant class. In this article, we implement an end-to-end automated solution using embedding quantization (incl. a comprehensive guide and analysis on scalar quantization applied to clustering) and a Large Language Model (LLM) pipeline. Our case study starts with a dataset of [25,000 arXiv publications](https://huggingface.co/datasets/dcarpintero/arxiv.cs.CL.25k) from Computational Linguistics (cs.CL), published before July 2024, which we organize under a novel hierarchical scheme.
 
 ## Methodology
 
 Our approach centers on two key tasks: (i) unsupervised clustering of the arXiv dataset into related collections, and (ii) discovering the latent thematic structures within each cluster.
 
 At its core, the clustering task requires identifying a sufficient number of similar examples within an *unlabeled* dataset.
-This is a natural task for embeddings, as they capture semantic relationships in a corpus and can be provided as input features to a clustering algorithm to establish similarity links among examples. 
+This is a natural task for embeddings, as they capture semantic relationships in a corpus and can be provided as input features to a clustering algorithm for establishing similarity links among examples. 
 
-We begin by transforming the (*title*:*abstract*) pairs of our dataset into an embeddings representation using [Jina-Embeddings-v2](https://arxiv.org/abs/2310.19923), a BERT-ALiBi based attention model. And applying scalar quantization using both [Sentence Transformers](https://www.sbert.net/) and a custom implementation. For clustering, we run [HDBSCAN](https://hdbscan.readthedocs.io/en/latest/how_hdbscan_works.html) in a reduced dimensional space, comparing the results using `eom` and `leaf` clustering methods. Additionally, we examine how using `(u)int8` embeddings quantization instead of `float32` representations affects this process.
+We begin by transforming the (*title*:*abstract*) pairs of our dataset into an embeddings representation using [Jina-Embeddings-v2](https://arxiv.org/abs/2310.19923), a BERT-ALiBi based attention model. And applying scalar quantization using both [Sentence Transformers](https://www.sbert.net/) and a custom implementation (included for the sake of completeness). For clustering, we run [HDBSCAN](https://hdbscan.readthedocs.io/en/latest/how_hdbscan_works.html) in a reduced dimensional space, comparing the results using `eom` and `leaf` clustering methods. Additionally, we examine whether using `(u)int8` embeddings quantization instead of `float32` representations affects this process.
 
-To uncover latent topics within each cluster of arXiv publications, we combine [LangChain](https://www.langchain.com/) and [Pydantic](https://docs.pydantic.dev/) with [Mistral-7B-Instruct-v0.3](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.3) (and [GPT-4o](https://platform.openai.com/docs/models/gpt-4o), included for comparison) into an LLM-pipeline that generates a candidate taxonomy.
+To uncover latent topics within each cluster of arXiv publications, we combine [LangChain](https://www.langchain.com/) and [Pydantic](https://docs.pydantic.dev/) with [Mistral-7B-Instruct-v0.3](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.3) (and [GPT-4o](https://platform.openai.com/docs/models/gpt-4o), included for comparison) into an LLM-pipeline. The output is then incorporated into a prompt that guides [Claude Sonnet 3.5](https://docs.anthropic.com/en/docs/welcome) in generating a hierarchical taxonomy.
 
-The results hint at 35 emerging research topics - within 7 top categories - around Language Models (LLMs) in the field of Computational Linguistics (cs.CL). This approach may serve as a baseline for automatically identifying candidate schemes of classes in high-level [arXiv categories](https://arxiv.org/category_taxonomy) and efficiently completing taxonomies, addressing the challenge posed by the increasing volume of academic literature.
+The results hint at 35 emerging research topics - within 7 top categories - in the field of Computational Linguistics (cs.CL). This approach may serve as a baseline for automatically identifying candidate schemes of classes in high-level [arXiv categories](https://arxiv.org/category_taxonomy) and efficiently completing taxonomies, addressing the challenge posed by the increasing volume of academic literature.
 
-<figure>
+<p align="center">
   <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/Ghc69tCVsY-RMXD50PeIC.png">
-  <figcaption style="text-align: center;">Taxonomy Completion of Academic Literature with Embedding Quantization and an LLM-Pipeline</figcaption>
-</figure>
+</p>
+<p align="center">Taxonomy Completion of Academic Literature with Embedding Quantization and an LLM-Pipeline</p>
 
 ## 1. Embedding Transformation
 
@@ -53,10 +53,10 @@ f32_embeddings = model.encode(corpus,
 
 The semantic similarity between corpora can now be trivially computed as the inner product of embeddings. In the following heat map each entry [x, y] is colored based on said embeddings product for exemplary '*title*' sentences [x] and [y].
 
-<figure>
+<p align="center">
   <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/4djmELIe2LkZ8_Tofc91Q.png">
-  <figcaption style="text-align: center;">Semantic Similary in <em>cs.CL arXiv-titles</em> using Embeddings</figcaption>
-</figure>
+</p>
+<p align="center">Semantic Similary in <em>cs.CL arXiv-titles</em> using Embeddings</p>
 
 ## 2. Embedding Quantization for Memory Saving
 
@@ -77,14 +77,14 @@ However, if you work with a larger dataset, the memory requirements and associat
 | 1536                   | openai-text-embedding-3-small | 14.31 GB                     | 341.04 GB             | 571.53 GB                    |
 | 3072                   | openai-text-embedding-3-large | 28.61 GB                     | 682.08 GB             | 1.143 TB                   |
 
-A technique used to achieve memory saving is *Quantization*. The intuition behind this approach is that we can discretize  floating-point values by mapping their range [`f_max`, `f_min`] into a smaller range of fixed-point numbers [`q_max`, `q_min`], and linearly mapping all values between these ranges. In practice, this typically reduces the precision of a 32-bit floating-point to lower bit widths like 8-bits (scalar-quantization) or 1-bit values (binary quantization).
+A technique used to achieve memory saving is *Quantization*. The intuition behind this approach is that we can discretize  floating-point values by mapping their range [`f_max`, `f_min`] into a smaller range of fixed-point numbers [`q_max`, `q_min`], and linearly distributing all values between these ranges. In practice, this typically reduces the precision of a 32-bit floating-point to lower bit widths like 8-bits (scalar-quantization) or 1-bit values (binary quantization).
 
-<figure>
+<p align="center">
   <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/8PF8uD8wgk12Uuejddhnw.png">
-  <figcaption style="text-align: center;">Scalar Embedding Quantization - from <em>float32</em> to <em>(u)int8</em></figcaption>
-</figure>
+</p>
+<p align="center">Scalar Embedding Quantization - from <em>float32</em> to <em>(u)int8</em></p>
 
-By plotting the frequency distribution of our embeddings, we observe that the values are indeed concentrated around a relatively narrow range [-2.0, +2.0]. This means we can effectively map the `float32` values to 256 `(u)int8` buckets without significant loss of information:
+By plotting the frequency distribution of the *jina-generated* embeddings, we observe that the values are indeed concentrated around a relatively narrow range [-2.0, +2.0]. This means we can effectively map the float32 values to 256 (u)int8 buckets without significant loss of information:
 
 ```python
 import matplotlib.pyplot as plt
@@ -95,10 +95,10 @@ plt.title('distribution')
 plt.show()
 ```
 
-<figure>
+<p align="central">
   <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/Cx578eTvr8z3cj7yX7Nn5.png">
-  <figcaption style="text-align: center;">Original <em>float32 jina-embeddings-v2</em> distribution</figcaption>
-</figure>
+</p>
+<p align="center">Original <em>float32 jina-embeddings-v2</em> distribution</p>
 
 We can calculate the exact `[min, max]` values of the distribution:
 
@@ -107,7 +107,7 @@ We can calculate the exact `[min, max]` values of the distribution:
 (-2.0162134, 2.074683)
 ```
 
-A calibration set of 10k embeddings would cover nearly 99.98% of the original `float32` values. The use of calibration intents to obtain representative `f_min` and `f_max` values along each dimension to reduce the computational overhead and potential issues caused by outliers that might appear in larger datasets.
+The first step to implement scalar quantization is to define a calibration set of embeddings. A typical starting point is a subset of 10k embeddings, which in our case would cover nearly 99.98% of the original `float32` embedding values. The use of calibration intents to obtain representative `f_min` and `f_max` values along each dimension to reduce the computational overhead and potential issues caused by outliers that might appear in larger datasets.
 
 ```python
 def calibration_accuracy(embeddings: np.ndarray, k: int = 10000) -> float:
@@ -129,7 +129,7 @@ acc = calibration_accuracy(f32_embeddings, k=10000)
 print(f"Average percentage of embeddings within [f_min, f_max] calibration: {acc:.5f}%")
 ```
 
-This scalar quantization approach can be easily applied with [Sentence Transformers](https://www.sbert.net/), resulting in a 4x memory saving compared to the original float32 representation. Moreover, we will also benefit from faster arithmetic operations since matrix multiplication can be performed faster with integer arithmetic. 
+The second and third steps of scalar quantization - *computing scales and zero point*, and *encoding* - can be easily applied with [Sentence Transformers](https://www.sbert.net/), resulting in a 4x memory saving compared to the original `float32` representation. Moreover, we will also benefit from faster arithmetic operations since matrix multiplication can be performed faster with integer arithmetic. 
 
 ```python
 from sentence_transformers.quantization import quantize_embeddings
@@ -154,7 +154,7 @@ int8_embeddings = quantize_embeddings(
 75.0
 ```
 
-For completeness we also implement a scalar quantization method (see quantization diagram above):
+For completeness, we also implement a scalar quantization method:
 
 ```python
 def scalar_quantize_embeddings(embeddings: np.ndarray,
@@ -244,12 +244,12 @@ hdbs = hdbscan.HDBSCAN(min_cluster_size=100,            # conservative clusters'
 clusters = hdbs.fit_predict(embedding_5d)             # apply HDBSCAN on reduced UMAP
 ```
 
-The `cluster_selection_method` determines how HDBSCAN selects flat clusters from the tree hierarchy. Using `eom` (Excess of Mass) cluster selection method in combination with embedding quantization, tended to create a few larger, less specific clusters. These clusters would have required a further *reclustering process* to extract meaningful latent topics. Instead, by switching to the `leaf` selection method, the algorithm selects leaf nodes from the cluster hierarchy, and produced a more fine grained clustering compared to the Excess of Mass method.
+The `cluster_selection_method` determines how HDBSCAN selects flat clusters from the tree hierarchy. In our case, using `eom` (Excess of Mass) cluster selection method in combination with embedding quantization, tended to create a few larger, less specific clusters. These clusters would have required a further *reclustering process* to extract meaningful latent topics. Instead, by switching to the `leaf` selection method, we guided the algorithm to select leaf nodes from the cluster hierarchy, which produced a more fine grained clustering compared to the Excess of Mass method.
 
-<figure>
+<p align="center">
   <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/20_VarYLBZxlND0vtDlLy.png">
-  <figcaption style="text-align: center;">HDBSCAN <em>eom</em> & <em>leaf</em> clustering method comparison using <em>int8-embedding-quantization</em></figcaption>
-</figure>
+</p>
+<p align="center">HDBSCAN <em>eom</em> & <em>leaf</em> clustering method comparison using <em>int8-embedding-quantization</em></p>
 
 ## 5. Uncovering Latent Topics with an LLM-Pipeline
 
@@ -340,7 +340,7 @@ df['topic'] = df['cluster'].map(topic_map)
 
 ## 6. Results
 
-### 6.1 Analyzing the effects of Quantization on Clustering
+### 6.1 Clustering Analysis
 
 Let's create an interactive scatter plot:
 
@@ -357,46 +357,89 @@ chart = alt.Chart(df).mark_circle(size=5).encode(
 )
 chart.display()
 ```
-
-<figure>
+<p align="center">
   <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/0enm9gBK5nDWINgej7DvM.png">
-  <figcaption style="text-align: center;">HDBSCAN leaf-clustering comparison using <em>float32</em> & <em>quantized-int8</em> embeddings</figcaption>
-</figure>
+</p>
+<p align="center">HDBSCAN leaf-clustering comparison using <em>float32</em> & <em>quantized-int8</em> embeddings</p>
 
 The clustering results using `float32` and `int8` quantized embeddings show a similar general layout of well-defined clusters, indicating that (i) the HDBSCAN clustering algorithm was effective in both cases, and (ii) the core relationships in the data were maintained after quantization.
 
 Notably, it can be observed that using embedding quantization resulted in slightly more granular clustering (35 clusters versus 31) that appears to be semantically coherent. Our tentative hypothesis is that scalar quantization might *paradoxically* guide the HDBSCAN clustering algorithm to separate points that were previously grouped together.
 
-This could be due to (i) noise and numerical precission (quantization can create small *noisy* variations in the data, which might have a sort of regularization effect and lead to more sensitive clustering decisions), or due to (ii) the alteration of distance calculations (this could amplify certain differences between points that were less pronounced in the `float32` representation). Further investigation would be necessary to fully understand the implications of quantization on clustering.
+This could be due to (i) noise and numerical precission (quantization can create small *noisy* variations in the data, which might have a sort of *regularization* effect and lead to more sensitive clustering decisions), or due to (ii) the alteration of distance calculations (this could amplify certain differences between points that were less pronounced in the `float32` representation). Further investigation would be necessary to fully understand the implications of quantization on clustering.
 
-### 6.2 Candidate Taxonomy
+### 6.2 Taxonomy Scheme
 
-The results suggest emerging research domains around Language Models (LLMs) in the field of Computational Linguistics (cs.CL) that might serve as a baseline for a candidate classification scheme within the [arXiv cs.CL category](https://arxiv.org/category_taxonomy):
+To create a hierarchical taxonomy, we craft a prompt to guide [Claude Sonnet 3.5](https://docs.anthropic.com/en/docs/welcome) in organizing the 35 identified research topics, corresponding to each cluster, into a hierarchical scheme:
 
+```python
+from langchain_core.prompts import PromptTemplate
 
-| Main Category | Subcategory | Topics |
-|---------------|-------------|--------|
-| 1. Foundations of Language Models | 1.1 Model Architectures and Mechanisms | - Transformer Models and Attention Mechanisms<br>- Large Language Models (LLMs) |
-| | 1.2 Model Optimization and Efficiency | - Compression and Quantization of LLMs<br>- Parameter-Efficient Fine-Tuning of LLMs<br>- Knowledge Distillation in LLMs |
-| | 1.3 Learning Paradigms | - In-Context Learning in LLMs<br>- Instruction Tuning for LLMs |
-| 2. Advanced NLP Tasks and Applications | 2.1 Text Analysis and Generation | - Text Summarization<br>- Question Answering<br>- Aspect-Based Sentiment Analysis |
-| | 2.2 Information Extraction | - Named Entity Recognition<br>- Relation Extraction |
-| | 2.3 Dialogue and Interactive Systems | - Personalized Dialogue Systems<br>- Emotion and Empathy in AI |
-| | 2.4 Multimodal and Cross-Modal AI | - Multimodal Vision-Language Models<br>- Speech Processing |
-| 3. Multilingual and Cross-Lingual NLP | | - Multilingual and Cross-Lingual NLP Techniques |
-| 4. Knowledge Representation and Reasoning | 4.1 Knowledge Structures | - Knowledge Graphs |
-| | 4.2 Reasoning and Inference | - Reasoning and Logical Abilities in LLMs<br>- Uncertainty and Explainability in LLMs |
-| | 4.3 Knowledge Integration | - Retrieval-Augmented Generation |
-| 5. AI Ethics, Safety, and Societal Impact | 5.1 Ethical Considerations | - Bias and Fairness in Models<br>- Alignment and Preference Optimization |
-| | 5.2 Safety and Security | - Hallucination in LLMs<br>- Jailbreak Attacks on LLMs<br>- Detection of AI-Generated Text |
-| | 5.3 Social Impact | - Hate Speech and Offensive Language Detection<br>- Fake News Detection |
-| 6. Domain-Specific Applications | 6.1 Healthcare and Biomedicine | - Medical and Biomedical Applications of LLMs<br>- Mental Health and Public Health Analysis |
-| | 6.2 Finance | - Financial Applications of LLMs |
-| | 6.3 Legal | - Legal Natural Language Processing |
-| | 6.4 Software Development | - Code Generation and Optimization with LLMs |
-| 7. Advanced AI Systems and Techniques | 7.1 Autonomous Agents | - LLMs for Autonomous Agents and Planning |
-| | 7.2 Prompt Engineering | - Prompt Optimization in LLMs |
-| | 7.3 Robustness and Security | - Adversarial Attacks and Robustness in NLP |
+taxonomy_prompt = """
+    Create a comprehensive and well-structured taxonomy
+    for the ArXiv cs.CL (Computational Linguistics) category.
+    This taxonomy should organize subtopics in a logical manner.
+
+    INSTRUCTIONS
+
+    1. Review and Refine Subtopics:
+      - Examine the provided list of subtopics in computational linguistics.
+      - Ensure each subtopic is clearly defined and distinct from others.
+
+    2. Create Definitions:
+      - For each subtopic, provide a concise definition (1-2 sentences).
+
+    3. Develop a Hierarchical Structure:
+      - Group related subtopics into broader categories.
+      - Create a multi-level hierarchy, with top-level categories and nested subcategories.
+      - Ensure that the structure is logical and intuitive for researchers in the field.
+
+    4. Validate and Refine:
+      - Review the entire taxonomy for consistency, completeness, and clarity.
+
+    OUTPUT FORMAT
+
+    - Present the final taxonomy in a clear, hierarchical format, with:
+
+      . Main categories
+        .. Subcategories
+          ... Individual topics with their definitions
+
+    SUBTOPICS:
+    {taxonomy_subtopics}
+    """
+```
+
+The results can be inspected in this [Claude Artifact](https://claude.site/artifacts/af6d4dfd-6b8b-426d-9a79-213639c51a5f) (definitions have been redacted for simplicity). This approach may serve as a baseline for automatically identifying candidate schemes of classes in high-level [arXiv categories](https://arxiv.org/category_taxonomy):
+```
+. Foundations of Language Models
+  .. Model Architectures and Mechanisms 
+    ... Transformer Models and Attention Mechanisms
+    ... Large Language Models (LLMs)
+  .. Model Optimization and Efficiency
+    ... Compression and Quantization
+    ... Parameter-Efficient Fine-Tuning
+    ... Knowledge Distillation
+  .. Learning Paradigms
+    ... In-Context Learning
+    ... Instruction Tuning
+
+. AI Ethics, Safety, and Societal Impact
+  .. Ethical Considerations
+    ... Bias and Fairness in Models
+    ... Alignment and Preference Optimization
+  .. Safety and Security
+    ... Hallucination in LLMs
+    ... Adversarial Attacks and Robustness
+    ... Detection of AI-Generated Text
+  .. Social Impact
+    ... Hate Speech and Offensive Language Detection
+    ... Fake News Detection
+
+[...]
+```
+
+The entire scheme is available as a [Claude Artifact](https://claude.site/artifacts/af6d4dfd-6b8b-426d-9a79-213639c51a5f).
 
 ## Resources
 
@@ -422,10 +465,3 @@ The results suggest emerging research domains around Language Models (LLMs) in t
 - [4] Campello, et al. 2013. *Density-Based Clustering Based on Hierarchical Density Estimates. Advances in Knowledge Discovery and Data Mining*. Vol. 7819. Berlin, Heidelberg: Springer Berlin Heidelberg. pp. 160–172. [doi:10.1007/978-3-642-37456-2_14](https://link.springer.com/chapter/10.1007/978-3-642-37456-2_14).
 - [5] Jiang, et al. 2023. *Mistral 7B*. [arXiv:2310.06825](https://arxiv.org/abs/2310.06825).
 - [6] Shakir, et al. 2024. *Binary and Scalar Embedding Quantization for Significantly Faster & Cheaper Retrieval*. [hf:shakir-embedding-quantization](https://huggingface.co/blog/embedding-quantization)
-
-## Frameworks
-
-- [Hugging Face Hub](https://huggingface.co/docs/hub/index)
-- [LangChain](https://python.langchain.com/v0.2/docs/introduction/) | [LangChain Prompt Templates](https://python.langchain.com/v0.2/docs/concepts/#prompt-templates) | [LangChain Expression Language (LCEL)](https://python.langchain.com/docs/expression_language/)
-- [Pydantic](https://docs.pydantic.dev/latest/)
-- [Sentence Transformers](https://www.sbert.net/index.html) | [Sentence Transformers Quantization](https://sbert.net/examples/applications/embedding-quantization/README.html)
