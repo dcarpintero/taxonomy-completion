@@ -5,7 +5,7 @@
 [![GitHub issues](https://img.shields.io/github/issues/dcarpintero/taxonomy-completion.svg)](https://GitHub.com/dcarpintero/taxonomy-completion/issues/)
 [![GitHub pull-requests](https://img.shields.io/github/issues-pr/dcarpintero/taxonomy-completion.svg)](https://GitHub.com/dcarpintero/taxonomy-completion/pulls/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dcarpintero/taxonomy-completion/blob/main/nb.semantic.clustering.topic.modeling.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dcarpintero/taxonomy-completion/blob/main/nb.taxonomy-completion-with-embedding-quantization-and-llms.ipynb)
 
 [![GitHub watchers](https://img.shields.io/github/watchers/dcarpintero/taxonomy-completion.svg?style=social&label=Watch)](https://GitHub.com/dcarpintero/taxonomy-completion/watchers/)
 [![GitHub forks](https://img.shields.io/github/forks/dcarpintero/taxonomy-completion.svg?style=social&label=Fork)](https://GitHub.com/dcarpintero/taxonomy-completion/network/)
