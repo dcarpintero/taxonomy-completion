@@ -454,10 +454,6 @@ The results can be inspected in this [Claude Artifact](https://claude.site/artif
 
 The entire scheme is available as a [Claude Artifact](https://claude.site/artifacts/af6d4dfd-6b8b-426d-9a79-213639c51a5f).
 
-## Resources
-
-- [GitHub Repo](https://github.com/dcarpintero/llm-based-categorization-taxonomy-completion)
-
 ## Citation
 
 ```
