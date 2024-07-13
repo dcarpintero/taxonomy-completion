@@ -1,5 +1,18 @@
 # Taxonomy Completion with Embedding Quantization and an LLM-based Pipeline: A Case Study in Computational Linguistics
 
+[![GitHub license](https://img.shields.io/github/license/dcarpintero/taxonomy-completion)](https://github.com/dcarpintero/taxonomy-completion/blob/main/LICENSE)
+[![GitHub contributors](https://img.shields.io/github/contributors/dcarpintero/taxonomy-completion.svg)](https://GitHub.com/dcarpintero/taxonomy-completion/graphs/contributors/)
+[![GitHub issues](https://img.shields.io/github/issues/dcarpintero/taxonomy-completion.svg)](https://GitHub.com/dcarpintero/taxonomy-completion/issues/)
+[![GitHub pull-requests](https://img.shields.io/github/issues-pr/dcarpintero/taxonomy-completion.svg)](https://GitHub.com/dcarpintero/taxonomy-completion/pulls/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dcarpintero/taxonomy-completion/blob/main/nb.semantic.clustering.topic.modeling.ipynb)
+
+[![GitHub watchers](https://img.shields.io/github/watchers/dcarpintero/taxonomy-completion.svg?style=social&label=Watch)](https://GitHub.com/dcarpintero/taxonomy-completion/watchers/)
+[![GitHub forks](https://img.shields.io/github/forks/dcarpintero/taxonomy-completion.svg?style=social&label=Fork)](https://GitHub.com/dcarpintero/taxonomy-completion/network/)
+[![GitHub stars](https://img.shields.io/github/stars/dcarpintero/taxonomy-completion.svg?style=social&label=Star)](https://GitHub.com/dcarpintero/taxonomy-completion/stargazers/)
+
+## Introduction
+
 The ever-growing volume of research publications necessitates efficient methods for structuring academic knowledge. This task typically involves developing a supervised underlying scheme of classes and allocating publications to the most relevant class. In this article, we implement an end-to-end automated solution using embedding quantization (incl. a comprehensive guide and analysis on scalar quantization applied to clustering) and a Large Language Model (LLM) pipeline. Our case study starts with a dataset of [25,000 arXiv publications](https://huggingface.co/datasets/dcarpintero/arxiv.cs.CL.25k) from Computational Linguistics (cs.CL), published before July 2024, which we organize under a novel hierarchical scheme.
 
 ## Methodology
@@ -448,7 +461,7 @@ The entire scheme is available as a [Claude Artifact](https://claude.site/artifa
 ## Citation
 
 ```
-@article{carpintero2024categorization
+@article{carpintero2024
   author = { Diego Carpintero},
   title = {An LLM-based Pipeline for Categorization and Taxonomy Completion of Academic Literature},
   journal = {Hugging Face Blog},
