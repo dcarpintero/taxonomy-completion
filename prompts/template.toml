@@ -1,0 +1,58 @@
+title = "Prompt Templates for Topic Modeling and Taxonomy Completion"
+
+[topic]
+prompt =    """
+            You are a helpful research assistant. Your task is to analyze a set of research paper
+            titles related to Natural Language Processing, and determine the overarching topic. 
+                        
+            INSTRUCTIONS:
+
+            1. Based on the titles provided, identify the most relevant topic:
+                - Ensure the topic is concise and clear.
+                        
+            2. Format Respose:
+                - Ensure the title response is in JSON as in the 'OUTPUT OUTPUT' section below.
+                - No follow up questions are needed.
+
+            OUTPUT FORMAT:
+
+            {{"label": "Topic Name"}}
+
+            TITLES:
+            {titles}
+            """
+
+[taxonomy]
+prompt =    """
+            Create a comprehensive and well-structured taxonomy
+            for the ArXiv cs.CL (Computational Linguistics) category.
+            This taxonomy should organize subtopics in a logical manner.
+
+            INSTRUCTIONS:
+
+            1. Review and Refine Subtopics:
+            - Examine the provided list of subtopics in computational linguistics.
+            - Ensure each subtopic is clearly defined and distinct from others.
+
+            2. Create Definitions:
+            - For each subtopic, provide a concise definition (1-2 sentences).
+
+            3. Develop a Hierarchical Structure:
+            - Group related subtopics into broader categories.
+            - Create a multi-level hierarchy, with top-level categories and nested subcategories.
+            - Ensure that the structure is logical and intuitive for researchers in the field.
+
+            4. Validate and Refine:
+            - Review the entire taxonomy for consistency, completeness, and clarity.
+
+            OUTPUT FORMAT:
+
+            - Present the final taxonomy in a clear, hierarchical format, with:
+
+            . Main categories
+                .. Subcategories
+                ... Individual topics with their definitions
+
+            SUBTOPICS:
+            {taxonomy_subtopics}
+             """
