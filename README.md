@@ -13,70 +13,6 @@
 
 ## Introduction
 
-The ever-growing volume of research publications necessitates efficient methods for structuring academic knowledge. This task typically involves developing a supervised underlying scheme of classes and allocating publications to the most relevant class. In this article, we implement an end-to-end automated solution using embedding quantization (incl. a comprehensive guide and analysis on scalar quantization applied to clustering) and a Large Language Model (LLM) pipeline. Our case study starts with a dataset of [25,000 arXiv publications](https://huggingface.co/datasets/dcarpintero/arxiv.cs.CL.25k) from Computational Linguistics (cs.CL), published before July 2024, which we organize under a novel hierarchical scheme.
-
-## Methodology
-
-Our approach centers on two key tasks: (i) unsupervised clustering of the arXiv dataset into related collections, and (ii) discovering the latent thematic structures within each cluster.
-
-At its core, the clustering task requires identifying a sufficient number of similar examples within an *unlabeled* dataset.
-This is a natural task for embeddings, as they capture semantic relationships in a corpus and can be provided as input features to a clustering algorithm for establishing similarity links among examples. 
-
-We begin by transforming the (*title*:*abstract*) pairs of our dataset into an embeddings representation using [Jina-Embeddings-v2](https://arxiv.org/abs/2310.19923), a BERT-ALiBi based attention model. And applying scalar quantization using both [Sentence Transformers](https://www.sbert.net/) and a custom implementation (included for the sake of completeness). For clustering, we run [HDBSCAN](https://hdbscan.readthedocs.io/en/latest/how_hdbscan_works.html) in a reduced dimensional space, comparing the results using `eom` and `leaf` clustering methods. Additionally, we examine whether using `(u)int8` embeddings quantization instead of `float32` representations affects this process.
-
-To uncover latent topics within each cluster of arXiv publications, we combine [LangChain](https://www.langchain.com/) and [Pydantic](https://docs.pydantic.dev/) with [Mistral-7B-Instruct-v0.3](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.3) (and [GPT-4o](https://platform.openai.com/docs/models/gpt-4o), included for comparison) into an LLM-pipeline. The output is then incorporated into a prompt that guides [Claude Sonnet 3.5](https://docs.anthropic.com/en/docs/welcome) in generating a hierarchical taxonomy.
-
-The results hint at 35 emerging research topics - within 7 top categories - in the field of Computational Linguistics (cs.CL). This approach may serve as a baseline for automatically identifying candidate schemes of classes in high-level [arXiv categories](https://arxiv.org/category_taxonomy) and efficiently completing taxonomies, addressing the challenge posed by the increasing volume of academic literature.
-
-<p align="center">
-  <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/Ghc69tCVsY-RMXD50PeIC.png">
-</p>
-<p align="center">Taxonomy Completion of Academic Literature with Embedding Quantization and an LLM-Pipeline</p>
-
-## 1. Embedding Transformation
-
-Embeddings are numerical representations of real-world objects like text, images, and audio that encapsulate semantic information of the data they represent. They are used by AI models to understand complex knowledge domains in downstream applications such as clustering, as well as information retrieval and classification tasks, among others.
-
-#### Supporting Large Sequences
-
-We will map (*title*:*abstract*) pairs from arXiv publications to a 768 dimensional space using [Jina-Embeddings-v2](https://arxiv.org/abs/2310.19923) [1], an open-source text embedding model capable of accommodating up to 8192 tokens. This provides a sufficiently large sequence length for titles, abstracts, and other document sections that might be relevant. To overcome the conventional 512-token limit  present in other models, Jina-Embeddings-v2 incorporates bidirectional [ALiBi](https://arxiv.org/abs/2108.12409) [2] into the BERT framework. ALiBi (Attention with Linear Biases) enables input length extrapolation (i.e. sequences exceeding 2048 tokens) by encoding positional information directly within the self-attention layer, instead of introducing positional embeddings. In practice, it biases query-key attention scores with a penalty that is proportional to their distance, favoring stronger mutual attention between proximate tokens.
-
-#### Encoding with Sentence Transformers
-
-The first step to use the [Jina-Embeddings-v2](https://huggingface.co/jinaai/jina-embeddings-v2-base-en) model is to load it through [Sentence Transformers](https://www.SBERT.net), a framework for accessing state-of-the-art models that is available at the [Hugging Face Hub](https://huggingface.co/models?library=sentence-transformers&sort=downloads). There you can find over 500 hundreds models such as [all-MiniLM-L12-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L12-v2) and [all-mpnet-base-v2](https://huggingface.co/sentence-transformers/all-mpnet-base-v2) that are also suitable for text encoding.
-
-```python
-from sentence_transformers import SentenceTransformer
-model = SentenceTransformer('jinaai/jina-embeddings-v2-base-en', trust_remote_code=True)
-```
-
-We now encode (*title*:*abstract*) pairs of our [dataset]() using `batch_size = 64`. This allows for parallel computation on hardware accelerators like GPUs (albeit at the cost of requiring more memory). 
-
-```python
-from datasets import load_dataset
-ds = load_dataset("dcarpintero/arxiv.cs.CL.25k", split="train")
-
-corpus = [title + ':' + abstract for title, abstract in zip(ds['title'], ds['abstract'])]
-f32_embeddings = model.encode(corpus,
-                              batch_size=64,
-                              show_progress_bar=True)
-```
-
-#### Computing Semantic Similarity
-
-The semantic similarity between corpora can now be trivially computed as the inner product of embeddings. In the following heat map each entry [x, y] is colored based on said embeddings product for exemplary '*title*' sentences [x] and [y].
-
-<p align="center">
-  <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/4djmELIe2LkZ8_Tofc91Q.png">
-</p>
-<p align="center">Semantic Similary in <em>cs.CL arXiv-titles</em> using Embeddings</p>
-
-## 2. Embedding Quantization for Memory Saving
-
-Scaling up embeddings can be challenging. Currently, state-of-the-art models represent each embedding as `float32`, which requires 4 bytes of memory. Given that Jina-Embeddings-v2 maps text to a 768 dimensional space, the memory requirements for our dataset would be around 73 MB without index and other metadata related to the publication records:
-
-```python# Taxonomy Completion with Embedding Quantization and an LLM-based Pipeline: A Case Study in Computational Linguistics
-
 The ever-growing volume of research publications necessitates efficient methods for structuring academic knowledge. This task typically involves developing a supervised underlying scheme of classes and allocating publications to the most relevant class. In this article, we implement an end-to-end automated solution using embedding quantization and a Large Language Model (LLM) pipeline.  Our case study starts with a dataset of [25,000 arXiv publications](https://huggingface.co/datasets/dcarpintero/arxiv.cs.CL.25k) from Computational Linguistics (cs.CL), published before July 2024, which we organize under a novel scheme of classes.
 
 <figure>
@@ -85,16 +21,16 @@ The ever-growing volume of research publications necessitates efficient methods 
 
 ## Methodology
 
-Our approach centers on three key tasks: (i) unsupervised clustering of the arXiv dataset into related collections, (ii) discovering the latent thematic structures within each cluster, and (iii) creating a candidate taxonomy scheme for the [cs.CL arXiv category](https://arxiv.org/category_taxonomy) based on said thematic structures.
+Our approach centers on three key tasks: (i) unsupervised clustering of the arXiv dataset into related collections, (ii) discovering the latent thematic structures within each cluster, and (iii) creating a candidate taxonomy scheme based on said thematic structures.
 
 At its core, the clustering task requires identifying a sufficient number of similar examples within an *unlabeled* dataset.
 This is a natural task for embeddings, as they capture semantic relationships in a corpus and can be provided as input features to a clustering algorithm for establishing similarity links among examples. We begin by transforming the (*title*:*abstract*) pairs of our dataset into an embeddings representation using [Jina-Embeddings-v2](https://arxiv.org/abs/2310.19923), a BERT-ALiBi based attention model. And applying scalar quantization using both [Sentence Transformers](https://www.sbert.net/) and a custom implementation.
 
 For clustering, we run [HDBSCAN](https://hdbscan.readthedocs.io/en/latest/how_hdbscan_works.html) in a reduced dimensional space, comparing the results using `eom` and `leaf` clustering methods. Additionally, we examine whether using `(u)int8` embeddings quantization instead of `float32` representations affects this process.
 
-To uncover latent topics within each cluster of arXiv publications, we combine [LangChain](https://www.langchain.com/) and [Pydantic](https://docs.pydantic.dev/) with [Mistral-7B-Instruct-v0.3](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.3) (and [GPT-4o](https://platform.openai.com/docs/models/gpt-4o), included for comparison) into an LLM-pipeline. The output is then incorporated into a prompt template that guides [Claude Sonnet 3.5](https://docs.anthropic.com/en/docs/welcome) in generating a hierarchical taxonomy.
+To uncover latent topics within each cluster of arXiv publications, we combine [LangChain](https://www.langchain.com/) and [Pydantic](https://docs.pydantic.dev/) with [Mistral-7B-Instruct-v0.3](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.3) (and [GPT-4o](https://platform.openai.com/docs/models/gpt-4o), included for comparison) into an LLM-pipeline. The output is then incorporated into a refined prompt template that guides [Claude Sonnet 3.5](https://docs.anthropic.com/en/docs/welcome) in generating a hierarchical taxonomy.
 
-The results hint at 35 emerging research topics, wherein each topic comprises at least `100` publications. Those are organized within 7 parent classes in the field of Computational Linguistics (cs.CL). This approach may serve as a baseline for automatically identifying candidate schemes of classes in high-level [arXiv categories](https://arxiv.org/category_taxonomy) and efficiently completing taxonomies, addressing the challenge posed by the increasing volume of academic literature.
+The results hint at 35 emerging research topics, wherein each topic comprises at least `100` publications. These are organized within 7 parent classes in the field of Computational Linguistics (cs.CL). This approach may serve as a baseline for automatically generating hierarchical candidate schemes in high-level [arXiv categories](https://arxiv.org/category_taxonomy) and efficiently completing taxonomies, addressing the challenge posed by the increasing volume of academic literature.
 
 <figure>
   <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/fbCiM9DfjvDFThUQYngIO.png">
@@ -103,15 +39,15 @@ The results hint at 35 emerging research topics, wherein each topic comprises at
 
 ## 1. Embedding Transformation
 
-Embeddings are numerical representations of real-world objects like text, images, and audio that encapsulate semantic information of the data they represent. They are used by AI models to understand complex knowledge domains in downstream applications such as clustering, as well as information retrieval and semantic understanding tasks, among others.
+Embeddings are numerical representations of real-world objects like text, images, and audio that encapsulate semantic information of the data they represent. They are used by AI models to understand complex knowledge domains in downstream applications such as clustering, information retrieval, and semantic understanding tasks, among others.
 
 #### Supporting Large Sequences
 
-We will map (*title*:*abstract*) pairs from arXiv publications to a 768 dimensional space using [Jina-Embeddings-v2](https://arxiv.org/abs/2310.19923) [1], an open-source text embedding model capable of accommodating up to 8192 tokens. This provides a sufficiently large sequence length for titles, abstracts, and other document sections that might be relevant. To overcome the conventional 512-token limit  present in other models, Jina-Embeddings-v2 incorporates bidirectional [ALiBi](https://arxiv.org/abs/2108.12409) [2] into the BERT framework. ALiBi (Attention with Linear Biases) enables input length extrapolation (i.e. sequences exceeding 2048 tokens) by encoding positional information directly within the self-attention layer, instead of introducing positional embeddings. In practice, it biases query-key attention scores with a penalty that is proportional to their distance, favoring stronger mutual attention between proximate tokens.
+We will map (*title*:*abstract*) pairs from arXiv publications to a 768-dimensional space using [Jina-Embeddings-v2](https://arxiv.org/abs/2310.19923) [1], an open-source text embedding model capable of accommodating up to 8192 tokens. This provides a sufficiently large sequence length for titles, abstracts, and other document sections that might be relevant. To overcome the conventional 512-token limit  present in other models, Jina-Embeddings-v2 incorporates bidirectional [ALiBi](https://arxiv.org/abs/2108.12409) [2] into the BERT framework. ALiBi (Attention with Linear Biases) enables input length extrapolation (i.e., sequences exceeding 2048 tokens) by encoding positional information directly within the self-attention layer, instead of introducing positional embeddings. In practice, it biases query-key attention scores with a penalty that is proportional to their distance, favoring stronger mutual attention between proximate tokens.
 
 #### Encoding with Sentence Transformers
 
-The first step to use the [Jina-Embeddings-v2](https://huggingface.co/jinaai/jina-embeddings-v2-base-en) model is to load it through [Sentence Transformers](https://www.SBERT.net), a framework for accessing state-of-the-art models that is available at the [Hugging Face Hub](https://huggingface.co/models?library=sentence-transformers&sort=downloads):
+The first step to using the [Jina-Embeddings-v2](https://huggingface.co/jinaai/jina-embeddings-v2-base-en) model is to load it through [Sentence Transformers](https://www.SBERT.net), a framework for accessing state-of-the-art models that is available at the [Hugging Face Hub](https://huggingface.co/models?library=sentence-transformers&sort=downloads):
 
 ```python
 from sentence_transformers import SentenceTransformer
@@ -132,7 +68,7 @@ f32_embeddings = model.encode(corpus,
 
 #### Computing Semantic Similarity
 
-The semantic similarity between corpora can now be trivially computed as the inner product of embeddings. In the following heat map each entry [x, y] is colored based on said embeddings product for exemplary '*title*' sentences [x] and [y].
+The semantic similarity between corpora can now be trivially computed as the inner product of embeddings. In the following heat map, each entry [x, y] is colored based on said embeddings product for exemplary '*title*' sentences [x] and [y].
 
 <figure>
   <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/4djmELIe2LkZ8_Tofc91Q.png">
@@ -141,14 +77,14 @@ The semantic similarity between corpora can now be trivially computed as the inn
 
 ## 2. Embedding Quantization for Memory Saving
 
-Scaling up embeddings can be challenging. Currently, state-of-the-art models represent each embedding as `float32`, which requires 4 bytes of memory. Given that [Jina-Embeddings-v2](https://arxiv.org/abs/2310.19923) maps text to a 768 dimensional space, the memory requirements for our dataset would be around 73 MB, without indexes and other metadata related to the publication records:
+Scaling up embeddings can be challenging. Currently, state-of-the-art models represent each embedding as `float32`, which requires 4 bytes of memory. Given that [Jina-Embeddings-v2](https://arxiv.org/abs/2310.19923) maps text to a 768-dimensional space, the memory requirements for our dataset would be around 73 MB, without indexes and other metadata related to the publication records:
 
 ```python
 25,000 embeddings * 768 dimensions/embedding * 4 bytes/dimension = 76,800,000 bytes
 76,800,000 bytes / (1024^2) ≈ 73.24 MB
 ```
 
-However, if you work with a larger dataset, the memory requirements and associated costs might increase significantly:
+However, working with a larger dataset might increase significantly the memory requirements and associated costs:
 
 | Embedding<br>Dimension | Embedding<br>Model            | 2.5M<br>ArXiv Abstracts      | 60.9M<br>Wikipedia Pages | 100M<br>Embeddings |
 |------------------------|-------------------------------|------------------------------|-----------------------|------------------------------|
@@ -158,14 +94,14 @@ However, if you work with a larger dataset, the memory requirements and associat
 | 1536                   | openai-text-embedding-3-small | 14.31 GB                     | 341.04 GB             | 571.53 GB                    |
 | 3072                   | openai-text-embedding-3-large | 28.61 GB                     | 682.08 GB             | 1.143 TB                   |
 
-A technique used to achieve memory saving is *Quantization*. The intuition behind this approach is that we can discretize  floating-point values by mapping their range [`f_max`, `f_min`] into a smaller range of fixed-point numbers [`q_max`, `q_min`], and linearly distributing all values between these ranges. In practice, this typically reduces the precision of a 32-bit floating-point to lower bit widths like 8-bits (scalar-quantization) or 1-bit values (binary quantization).
+A technique used to achieve memory saving is *Quantization*. The intuition behind this approach is that we can discretize  floating-point values by mapping their range [`f_max`, `f_min`] into a smaller range of fixed-point numbers [`q_max`, `q_min`], and linearly distributing all values between these ranges. In practice, this typically reduces the precision of a 32-bit floating-point to lower bit widths like 8-bits (scalar quantization) or 1-bit values (binary quantization).
 
 <figure>
   <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/8PF8uD8wgk12Uuejddhnw.png">
   <figcaption style="text-align: center;">Scalar Embedding Quantization - from <em>float32</em> to <em>(u)int8</em></figcaption>
 </figure>
 
-By plotting the frequency distribution of the *jina-generated* embeddings, we observe that the values are indeed concentrated around a relatively narrow range [-2.0, +2.0]. This means we can effectively map `float32` values to 256 `(u)int8` buckets without significant loss of information:
+By plotting the frequency distribution of the *Jina-generated* embeddings, we observe that the values are indeed concentrated around a relatively narrow range [-2.0, +2.0]. This means we can effectively map `float32` values to 256 `(u)int8` buckets without significant loss of information:
 
 ```python
 import matplotlib.pyplot as plt
@@ -188,7 +124,7 @@ We can calculate the exact `[min, max]` values of the distribution:
 (-2.0162134, 2.074683)
 ```
 
-The first step to implement scalar quantization is to define a calibration set of embeddings. A typical starting point is a subset of 10k embeddings, which in our case would cover nearly 99.98% of the original `float32` embedding values. The use of calibration intents to obtain representative `f_min` and `f_max` values along each dimension to reduce the computational overhead and potential issues caused by outliers that might appear in larger datasets.
+The first step to implementing scalar quantization is to define a calibration set of embeddings. A typical starting point is a subset of 10k embeddings, which in our case would cover nearly 99.98% of the original `float32` embedding values. The use of calibration is intended to obtain representative `f_min` and `f_max` values along each dimension to reduce the computational overhead and potential issues caused by outliers that might appear in larger datasets.
 
 ```python
 def calibration_accuracy(embeddings: np.ndarray, k: int = 10000) -> float:
@@ -211,7 +147,7 @@ print(f"Average percentage of embeddings within [f_min, f_max] calibration: {acc
 >>> Average percentage of embeddings within [f_min, f_max] calibration: 99.98636%
 ```
 
-The second and third steps of scalar quantization - *computing scales and zero point*, and *encoding* - can be easily applied with [Sentence Transformers](https://www.sbert.net/), resulting in a 4x memory saving compared to the original `float32` representation. Moreover, we will also benefit from faster arithmetic operations since matrix multiplication can be performed faster with integer arithmetic. 
+The second and third steps of scalar quantization — *computing scales and zero point*, and *encoding* — can be easily applied with [Sentence Transformers](https://www.sbert.net/), resulting in a 4x memory saving compared to the original `float32` representation. Moreover, we will also benefit from faster arithmetic operations since matrix multiplication can be performed more quickly with integer arithmetic. 
 
 ```python
 from sentence_transformers.quantization import quantize_embeddings
@@ -307,7 +243,7 @@ embedding_2d = umap.UMAP(n_neighbors=100,
                          metric='cosine').fit_transform(embeddings)
 ```
 
-Note that when we apply HDBSCAN clustering in the next step, the clusters found will be influenced by how UMAP preserved the local structures. A smaller `n_neighbors` value means UMAP will focus more on local structures, whereas a larger value allows to capture more global representations, which might be beneficial for understanding overall patterns in the data.
+Note that when we apply HDBSCAN clustering in the next step, the clusters found will be influenced by how UMAP preserved the local structures. A smaller `n_neighbors` value means UMAP will focus more on local structures, whereas a larger value allows capturing more global representations, which might be beneficial for understanding overall patterns in the data.
 
 ## 4. Semantic Clustering
 
@@ -326,7 +262,7 @@ hdbs = hdbscan.HDBSCAN(min_cluster_size=100,            # conservative clusters'
 clusters = hdbs.fit_predict(embedding_5d)               # apply HDBSCAN on reduced UMAP
 ```
 
-The `cluster_selection_method` determines how HDBSCAN selects flat clusters from the tree hierarchy. In our case, using `eom` (Excess of Mass) cluster selection method in combination with embedding quantization, tended to create a few larger, less specific clusters. These clusters would have required a further *reclustering process* to extract meaningful latent topics. Instead, by switching to the `leaf` selection method, we guided the algorithm to select leaf nodes from the cluster hierarchy, which produced a more fine grained clustering compared to the Excess of Mass method:
+The `cluster_selection_method` determines how HDBSCAN selects flat clusters from the tree hierarchy. In our case, using `eom` (Excess of Mass) cluster selection method in combination with embedding quantization tended to create a few larger, less specific clusters. These clusters would have required a further *reclustering process* to extract meaningful latent topics. Instead, by switching to the `leaf` selection method, we guided the algorithm to select leaf nodes from the cluster hierarchy, which produced a more fine-grained clustering compared to the Excess of Mass method:
 
 <figure>
   <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/20_VarYLBZxlND0vtDlLy.png">
@@ -382,7 +318,7 @@ topic_prompt = """
 
 ### 5.3 Inference Chain using LangChain Expression Language
 
-Let's compose now a topic modeling pipeline using [LangChain Expression Language (LCEL)](https://python.langchain.com/docs/expression_language/) to render our prompt template into LLM input, and parse the inference output as `JSON`:
+Let's now compose a topic modeling pipeline using [LangChain Expression Language (LCEL)](https://python.langchain.com/docs/expression_language/) to render our prompt template into LLM input, and parse the inference output as `JSON`:
 
 ```python
 from langchain.chains import LLMChain
@@ -429,7 +365,7 @@ df['topic'] = df['cluster'].map(topic_map)
 
 ## 6. Generating a Taxonomy
 
-To create a hierarchical taxonomy, we craft a prompt to guide [Claude Sonnet 3.5](https://docs.anthropic.com/en/docs/welcome) in organizing the identified research topics corresponding to each cluster, into a hierarchical scheme:
+To create a hierarchical taxonomy, we craft a prompt to guide [Claude Sonnet 3.5](https://docs.anthropic.com/en/docs/welcome) in organizing the identified research topics corresponding to each cluster into a hierarchical scheme:
 
 ```python
 from langchain_core.prompts import PromptTemplate
@@ -507,11 +443,11 @@ The clustering results using `float32` and `(u)int8` quantized embeddings show a
 
 Notably, it can be observed that using embedding quantization resulted in both cases in slightly more granular clustering (35 clusters versus 31) that appears to be semantically coherent. Our tentative hypothesis for this difference is that scalar quantization might *paradoxically* guide the HDBSCAN clustering algorithm to separate points that were previously grouped together.
 
-This could be due to (i) noise (quantization can create small *noisy* variations in the data, which might have a sort of *regularization* effect and lead to more sensitive clustering decisions), or due to (ii) the difference in numerical precission and alteration of distance calculations (this could amplify certain differences between points that were less pronounced in the `float32` representation). Further investigation would be necessary to fully understand the implications of quantization on clustering.
+This could be due to (i) noise (quantization can create small *noisy* variations in the data, which might have a sort of *regularization* effect and lead to more sensitive clustering decisions), or due to (ii) the difference in numerical precision and alteration of distance calculations (this could amplify certain differences between points that were less pronounced in the `float32` representation). Further investigation would be necessary to fully understand the implications of quantization on clustering.
 
 ### 7.2 Taxonomy Scheme
 
-The entire scheme can be inspected at [cs.CL.taxonomy](https://github.com/dcarpintero/taxonomy-completion/blob/main/arxiv/cs.CL.scheme.md). This approach may serve as a baseline for automatically identifying candidate schemes of classes in high-level [arXiv categories](https://arxiv.org/category_taxonomy):
+The entire scheme is available at [cs.CL.taxonomy](https://github.com/dcarpintero/taxonomy-completion/blob/main/arxiv/cs.CL.scheme.md). This approach may serve as a baseline for automatically identifying candidate schemes of classes in high-level [arXiv categories](https://arxiv.org/category_taxonomy):
 ```
 . Foundations of Language Models
   .. Model Architectures and Mechanisms 
@@ -561,4 +497,3 @@ The entire scheme can be inspected at [cs.CL.taxonomy](https://github.com/dcarpi
 - [5] Jiang, et al. 2023. *Mistral 7B*. [arXiv:2310.06825](https://arxiv.org/abs/2310.06825).
 - [6] Shakir, et al. 2024. *Binary and Scalar Embedding Quantization for Significantly Faster & Cheaper Retrieval*. [hf:shakir-embedding-quantization](https://huggingface.co/blog/embedding-quantization)
 - [7] Liu, Yue, et al. 2024. *Agent Design Pattern Catalogue: A Collection of Architectural Patterns for Foundation Model based Agents"*. [arXiv:2405.10467](https://arxiv.org/abs/2405.10467).
-
