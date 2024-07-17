@@ -15,9 +15,9 @@
 
 The ever-growing volume of research publications necessitates efficient methods for structuring academic knowledge. This task typically involves developing a supervised underlying scheme of classes and allocating publications to the most relevant class. In this article, we implement an end-to-end automated solution using embedding quantization and a Large Language Model (LLM) pipeline.  Our case study starts with a dataset of [25,000 arXiv publications](https://huggingface.co/datasets/dcarpintero/arxiv.cs.CL.25k) from Computational Linguistics (cs.CL), published before July 2024, which we organize under a novel scheme of classes.
 
-<figure>
+<p align="center">
   <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/Kp5GNW9dUKYQZtAKSAm3q.png">
-</figure>
+</p>
 
 ## Methodology
 
@@ -32,10 +32,10 @@ To uncover latent topics within each cluster of arXiv publications, we combine [
 
 The results hint at 35 emerging research topics, wherein each topic comprises at least `100` publications. These are organized within 7 parent classes in the field of Computational Linguistics (cs.CL). This approach may serve as a baseline for automatically generating hierarchical candidate schemes in high-level [arXiv categories](https://arxiv.org/category_taxonomy) and efficiently completing taxonomies, addressing the challenge posed by the increasing volume of academic literature.
 
-<figure>
+<p align="center">
   <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/fbCiM9DfjvDFThUQYngIO.png">
-  <figcaption style="text-align: center;">Taxonomy Completion of Academic Literature with Embedding Quantization and an LLM-Pipeline</figcaption>
-</figure>
+</p>
+<p align="center">Taxonomy Completion of Academic Literature with Embedding Quantization and an LLM-Pipeline</p>
 
 ## 1. Embedding Transformation
 
@@ -70,10 +70,10 @@ f32_embeddings = model.encode(corpus,
 
 The semantic similarity between corpora can now be trivially computed as the inner product of embeddings. In the following heat map, each entry [x, y] is colored based on said embeddings product for exemplary '*title*' sentences [x] and [y].
 
-<figure>
+<p align="center">
   <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/4djmELIe2LkZ8_Tofc91Q.png">
-  <figcaption style="text-align: center;">Semantic Similary in <em>cs.CL arXiv-titles</em> using Embeddings</figcaption>
-</figure>
+</p>
+<p align="center">Semantic Similary in <em>cs.CL arXiv-titles</em> using Embeddings</p>
 
 ## 2. Embedding Quantization for Memory Saving
 
@@ -96,10 +96,10 @@ However, working with a larger dataset might increase significantly the memory r
 
 A technique used to achieve memory saving is *Quantization*. The intuition behind this approach is that we can discretize  floating-point values by mapping their range [`f_max`, `f_min`] into a smaller range of fixed-point numbers [`q_max`, `q_min`], and linearly distributing all values between these ranges. In practice, this typically reduces the precision of a 32-bit floating-point to lower bit widths like 8-bits (scalar quantization) or 1-bit values (binary quantization).
 
-<figure>
+<p align="center">
   <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/8PF8uD8wgk12Uuejddhnw.png">
-  <figcaption style="text-align: center;">Scalar Embedding Quantization - from <em>float32</em> to <em>(u)int8</em></figcaption>
-</figure>
+</p>
+<p align="center">Scalar Embedding Quantization - from <em>float32</em> to <em>(u)int8</p>
 
 By plotting the frequency distribution of the *Jina-generated* embeddings, we observe that the values are indeed concentrated around a relatively narrow range [-2.0, +2.0]. This means we can effectively map `float32` values to 256 `(u)int8` buckets without significant loss of information:
 
@@ -112,10 +112,10 @@ plt.title('distribution')
 plt.show()
 ```
 
-<figure>
+<p align="center">
   <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/Cx578eTvr8z3cj7yX7Nn5.png">
-  <figcaption style="text-align: center;">Original <em>float32 jina-embeddings-v2</em> distribution</figcaption>
-</figure>
+</p>
+<p align="center">Original <em>float32 jina-embeddings-v2</em> distribution</p>
 
 We can calculate the exact `[min, max]` values of the distribution:
 
@@ -264,10 +264,10 @@ clusters = hdbs.fit_predict(embedding_5d)               # apply HDBSCAN on reduc
 
 The `cluster_selection_method` determines how HDBSCAN selects flat clusters from the tree hierarchy. In our case, using `eom` (Excess of Mass) cluster selection method in combination with embedding quantization tended to create a few larger, less specific clusters. These clusters would have required a further *reclustering process* to extract meaningful latent topics. Instead, by switching to the `leaf` selection method, we guided the algorithm to select leaf nodes from the cluster hierarchy, which produced a more fine-grained clustering compared to the Excess of Mass method:
 
-<figure>
+<p align="center">
   <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/20_VarYLBZxlND0vtDlLy.png">
-  <figcaption style="text-align: center;">HDBSCAN <em>eom</em> & <em>leaf</em> clustering method comparison using <em>int8-embedding-quantization</em></figcaption>
-</figure>
+</p>
+<p align="center">HDBSCAN <em>eom</em> & <em>leaf</em> clustering method comparison using <em>int8-embedding-quantization</em></p>
 
 ## 5. Uncovering Latent Topics with an LLM-Pipeline
 
@@ -427,17 +427,17 @@ chart.display()
 
 And compare the clustering results using `float32` embedding representations and `int8` [Sentence Transformers](https://www.sbert.net/) quantization:
 
-<figure>
+<p align="center">
   <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/e8nQw98dKSmLaNAKfx7T4.png">
-  <figcaption style="text-align: center;">HDBSCAN leaf-clustering using <em>float32</em> & <em>quantized-int8</em> embeddings (sentence-transformers-quantization)</figcaption>
-</figure>
+</p>
+<p align="center">HDBSCAN leaf-clustering using <em>float32</em> & <em>quantized-int8</em> embeddings (sentence-transformers-quantization)</em></p>
 
 We now perform the same comparison with our custom quantization implementation:
 
-<figure>
+<p align="center">
   <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/smL046VV2i4N1ulIRmykw.png">
-  <figcaption style="text-align: center;">HDBSCAN leaf-clustering using <em>float32</em> & <em>quantized-uint8</em> embeddings (self-quantization-implementation)</figcaption>
-</figure>
+</p>
+<p align="center">HDBSCAN leaf-clustering using <em>float32</em> & <em>quantized-uint8</em> embeddings (custom-quantization-implementation)</p>
 
 The clustering results using `float32` and `(u)int8` quantized embeddings show a similar general layout of well-defined clusters, indicating that (i) the HDBSCAN clustering algorithm was effective in both cases, and (ii) the core relationships in the data were maintained after quantization (using sentence transformers and our custom implementation).
 
