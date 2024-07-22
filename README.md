@@ -99,7 +99,7 @@ A technique used to achieve memory saving is *Quantization*. The intuition behin
 <p align="center">
   <img style="margin: 0 auto; display: block;" src="https://cdn-uploads.huggingface.co/production/uploads/64a13b68b14ab77f9e3eb061/8PF8uD8wgk12Uuejddhnw.png">
 </p>
-<p align="center">Scalar Embedding Quantization - from <em>float32</em> to <em>(u)int8</p>
+<p align="center">Scalar Embedding Quantization - from <em>float32</em> to <em>(u)int8</em></p>
 
 By plotting the frequency distribution of the *Jina-generated* embeddings, we observe that the values are indeed concentrated around a relatively narrow range [-2.0, +2.0]. This means we can effectively map `float32` values to 256 `(u)int8` buckets without significant loss of information:
 
